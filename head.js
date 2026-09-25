@@ -74,7 +74,7 @@ function addEyes(root, atlas, eyes, grade) {
               float mx = max(c.r, max(c.g, c.b));
               float sat = mx > 0.0 ? (mx - min(c.r, min(c.g, c.b))) / mx : 0.0;
               vec3 gain = mix(uGradeHair, uGradeSkin, smoothstep(0.03, 0.15, y));
-              diffuseColor.rgb = c * mix(vec3(1.0), gain, smoothstep(0.15, 0.4, sat));
+              diffuseColor.rgb = c * mix(vec3(1.0), gain, smoothstep(0.15, 0.4, sat) * (1.0 - eyeMask));
             }
           }`);
     };
@@ -86,6 +86,7 @@ function addEyes(root, atlas, eyes, grade) {
 // Other heads re-graded onto the smug head's palette (smug mean / grimace mean, linear RGB, from grade/stats.py).
 const GRADES = {
   'models/grimace_eyes.glb': { skin: [0.9012, 0.7903, 0.7347], hair: [0.3194, 0.2608, 0.24] },
+  'models/whistle_eyes.glb': { skin: [0.9598, 0.8346, 0.6506], hair: [1.0803, 0.4561, 0.3923] },
 };
 // Applied on top of every head's grade: a slightly deeper skin tone than the generator produced (linear gains).
 const SKIN_TONE = [0.7, 0.66, 0.64];
@@ -98,10 +99,14 @@ const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 async function loadHead(url, neckY) {
   const gltf = await loader.loadAsync(url);
   const root = gltf.scene;
-  const meta = root.userData.eyes;
-  const atlas = await gltf.parser.getDependency('texture', meta.texture);
+  // Heads without baked eye data (not yet processed) render their painted eyes as-is.
+  const NO_EYE = { box: [0, 0, 0, 0], boxRect: [0, 0, 0, 0], irisC: [0, 0], irisH: 0, irisRect: [0, 0, 0, 0], range: [0, 0], z: [9, -9] };
+  const meta = root.userData.eyes ?? { eyes: [NO_EYE, NO_EYE] };
+  const atlas = meta.texture !== undefined ? await gltf.parser.getDependency('texture', meta.texture) : new THREE.Texture();
   atlas.colorSpace = THREE.SRGBColorSpace;
-  const { invRoot, front } = addEyes(root, atlas, meta.eyes, gradeFor(url));
+  const eyes = [...meta.eyes, NO_EYE, NO_EYE].slice(0, 2);
+  const { invRoot, front } = addEyes(root, atlas, eyes, gradeFor(url));
+  root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   const box = new THREE.Box3().setFromObject(root);
   const c = box.getCenter(new THREE.Vector3());
   root.position.set(-c.x, -box.max.y + 0.95 - neckY, -c.z);
@@ -109,17 +114,16 @@ async function loadHead(url, neckY) {
 }
 
 // Placement is an angle around the head (0 = straight at the face) and a height; the decal is projected onto
-// whatever surface a ray from that direction hits first. A per-head key (e.g. `grimace`) overrides the placement
-// where the two sculpts differ.
+// whatever surface a ray from that direction hits first on the first face loaded.
 export const STICKERS = [
-  { file: '00-india.png', yaw: -18, y: 0.34, size: 0.17, tilt: -6, grimace: { y: 0.42 } },
+  { file: '00-india.png', yaw: -24, y: -0.015, size: 0.14, tilt: -6 },
   { file: '02-nmims.png', yaw: -56, y: -0.04, size: 0.19, tilt: -6 },
   { file: '01-mumbai.png', yaw: -92, y: -0.44, size: 0.21, tilt: 8 },
-  { file: '05-usa.png', yaw: 26, y: 0.28, size: 0.12, tilt: 8, grimace: { y: 0.37 } },
+  { file: '05-usa.png', yaw: 26, y: 0.34, size: 0.12, tilt: 8 },
   { file: '05b-syracuse.png', yaw: 56, y: -0.02, size: 0.20, tilt: 6 },
   { file: '06-chemistry.png', yaw: 70, y: -0.34, size: 0.14, tilt: -8 },
-  { file: '06b-darkstore.png', yaw: 112, y: -0.14, size: 0.15, tilt: 8 },
-  { file: '07-biztrip.png', yaw: 0, y: -0.50, size: 0.42, tilt: -6, grimace: { y: -0.42 } },
+  { file: '06b-darkstore.png', yaw: 122, y: -0.3, size: 0.15, tilt: 8 },
+  { file: '07-biztrip.png', yaw: 0, y: -0.61, size: 0.42, tilt: -6 },
   { file: '03-accenture.png', yaw: -40, y: -0.22, size: 0.26, tilt: -10 },
   { file: '09-cat.png', yaw: 222, y: -0.32, size: 0.15, tilt: 12 },
   { file: '12-sf.png', yaw: 186, y: -0.3, size: 0.17, tilt: -4 },
@@ -152,8 +156,10 @@ function localPatch(mesh, point, size, normal) {
     fa.fromBufferAttribute(pos, a); fb.fromBufferAttribute(pos, b); fc.fromBufferAttribute(pos, c);
     fn.subVectors(fc, fb).cross(fa.clone().sub(fb)).normalize();
     if (fn.dot(nLocal) < -0.1) continue;
-    const off = fa.clone().add(fb).add(fc).multiplyScalar(1 / 3).sub(local).dot(nLocal);
-    if (off > 0.02) continue;
+    const d = fa.clone().add(fb).add(fc).multiplyScalar(1 / 3).sub(local), off = d.dot(nLocal);
+    // Tolerance grows away from the hit so skin that curves toward the viewer (a neck flaring into the collar)
+    // is kept, while hair floating in front near the centre is still dropped.
+    if (off > 0.02 + 0.35 * Math.sqrt(Math.max(0, d.lengthSq() - off * off))) continue;
     for (let k = 0; k < 3; k++) {
       const j = idx ? idx.getX(i + k) : i + k;
       P.push(pos.getX(j), pos.getY(j), pos.getZ(j)); N.push(nor.getX(j), nor.getY(j), nor.getZ(j));
@@ -166,20 +172,39 @@ function localPatch(mesh, point, size, normal) {
   return m;
 }
 
-function addStickers(root, headKey) {
+// Where each sticker landed on the first face, in pivot space. Later faces take the sticker from the same spot and
+// facing, so it stays put when the faces swap even though the sculpts differ.
+const ANCHORS = {};
+
+function addStickers(root) {
   const meshes = []; root.traverse((o) => { if (o.isMesh) meshes.push(o); });
   root.updateWorldMatrix(true, true);
+  const pivot = root.parent, toPivot = pivot.matrixWorld.clone().invert();
   const ray = new THREE.Raycaster(), helper = new THREE.Object3D();
   const centre = new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3());
-  STICKERS.forEach((base) => {
-    const st = { ...base, ...(base[headKey] || {}) };
-    const a = THREE.MathUtils.degToRad(st.yaw);
-    const target = new THREE.Vector3(centre.x, st.y, centre.z);
-    const origin = target.clone().add(new THREE.Vector3(Math.sin(a) * 4, 0, Math.cos(a) * 4));
-    ray.set(origin, target.clone().sub(origin).normalize());
-    const hit = ray.intersectObjects(meshes, false)[0];
+  STICKERS.forEach((st) => {
+    const anchor = ANCHORS[st.file];
+    if (anchor) {
+      const p = anchor.point.clone().applyMatrix4(pivot.matrixWorld);
+      const d = anchor.normal.clone().transformDirection(pivot.matrixWorld);
+      ray.set(p.clone().addScaledVector(d, 0.3), d.negate());
+      ray.far = 0.6;
+    } else {
+      ray.far = Infinity;
+      const a = THREE.MathUtils.degToRad(st.yaw);
+      const target = new THREE.Vector3(centre.x, st.y, centre.z);
+      const origin = target.clone().add(new THREE.Vector3(Math.sin(a) * 4, 0, Math.cos(a) * 4));
+      ray.set(origin, target.clone().sub(origin).normalize());
+    }
+    // On later faces take the surface nearest the first face's spot, not the first one the ray meets: a jaw or
+    // chin that juts out further would otherwise catch the sticker and leave it half-buried under it.
+    const hits = ray.intersectObjects(meshes, false);
+    const hit = anchor ? hits.sort((u, w) => Math.abs(u.distance - 0.3) - Math.abs(w.distance - 0.3))[0] : hits[0];
     if (!hit) return;
     const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+    // Keep the first face's orientation too, so the patch doesn't twist on a slightly different surface.
+    if (anchor) n.copy(anchor.normal).transformDirection(pivot.matrixWorld);
+    else ANCHORS[st.file] = { point: hit.point.clone().applyMatrix4(toPivot), normal: n.clone().transformDirection(toPivot) };
     helper.position.copy(hit.point); helper.lookAt(hit.point.clone().add(n));
     helper.rotateZ(THREE.MathUtils.degToRad(st.tilt));
     const img = stickerTex[st.file].image, aspect = img.height / img.width;
@@ -197,16 +222,29 @@ function addStickers(root, headKey) {
 // Every placed sticker, so the page can pull the current chapter's patch onto the sharp layer.
 export const STICKER_MESHES = [];
 
-export const HEADS = { smug: 'models/smug_eyes.glb', grimace: 'models/grimace_eyes.glb' };
+// Faces in story order.
+export const HEADS = {
+  smug: ['models/smug_eyes.glb'],
+  grimace: ['models/grimace_eyes.glb'],
+  whistle: ['models/whistle_eyes.glb'],
+};
 
 // Sticker heights are world-space, so heads must sit in the pivot (at neckY) before stickers are projected.
+// The first face resolves the promise; the rest load in the background and appear in the returned object when ready.
 export async function loadHeads(pivot) {
-  const entries = await Promise.all(Object.entries(HEADS).map(async ([key, url]) => {
-    const h = await loadHead(url, pivot.position.y);
+  const heads = {};
+  const one = async (key) => {
+    let h;
+    for (const url of HEADS[key]) { try { h = await loadHead(url, pivot.position.y); break; } catch {} }
+    if (!h) return;
+    h.root.visible = false;
     pivot.add(h.root);
     pivot.updateWorldMatrix(true, true);
-    addStickers(h.root, key);
-    return [key, h];
-  }));
-  return Object.fromEntries(entries);
+    addStickers(h.root);
+    heads[key] = h;
+  };
+  const [first, ...rest] = Object.keys(HEADS);
+  await one(first);
+  rest.reduce((p, k) => p.then(() => one(k)), Promise.resolve());
+  return heads;
 }

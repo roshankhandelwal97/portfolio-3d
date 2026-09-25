@@ -71,7 +71,7 @@
   .cities { display: flex; align-items: baseline; gap: 16px; margin-top: 16px; padding-bottom: 52px;
     font-family: "Instrument Serif", Georgia, serif; font-size: clamp(24px, 2.4vw, 34px); color: var(--ink); }
   .city { position: relative; }
-  .city-arrow { font-size: .8em; color: var(--ink-soft); }
+  .city-arrow { width: .8em; height: .8em; align-self: center; fill: var(--ink-soft); }
   .hang { position: absolute; left: 50%; top: 100%; width: 38px; margin-left: -19px; padding-top: 12px;
     transform-origin: 50% 0; animation: swing 2.6s ease-in-out infinite; }
   .city:last-child .hang { animation-delay: -1.3s; }
@@ -181,7 +181,23 @@
   .credits.open .credits-panel { opacity: 1; transform: none; pointer-events: auto; }
   .flash { position: fixed; inset: 0; z-index: 4; pointer-events: none; background: #f4f7ff; opacity: 0; mix-blend-mode: screen; }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); z-index: 10;
-    font-size: 11px; letter-spacing: .3em; color: var(--ink-soft); transition: opacity .6s; }
+    font-size: 11px; letter-spacing: .3em; color: var(--ink-soft); transition: opacity .6s, transform .6s; overflow: hidden; }
+  #loading.done { transform: scale(1.04); }
+  .slaps img { position: absolute; width: clamp(64px, 9vw, 120px); height: auto; translate: -50% -50%;
+    opacity: 0; filter: drop-shadow(0 4px 6px rgba(0,0,0,.18)); animation: slap .38s cubic-bezier(.2,1.6,.4,1) forwards; }
+  @keyframes slap { from { opacity: 0; transform: scale(1.8) rotate(calc(var(--rot) - 25deg)); }
+    to { opacity: 1; transform: scale(1) rotate(var(--rot)); } }
+  .load-copy { position: relative; display: grid; justify-items: center; gap: 12px; text-transform: uppercase; }
+  .load-title { font-family: "Instrument Serif", Georgia, serif; font-size: clamp(26px, 3vw, 40px); letter-spacing: 0;
+    text-transform: none; color: var(--ink); }
+  .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  /* Progress drawn as a line of stitches that fills in thread colour. */
+  .stitch { position: relative; width: 180px; height: 2px;
+    background: repeating-linear-gradient(90deg, var(--ink-soft) 0 6px, transparent 6px 10px); opacity: .5; }
+  .stitch i { position: absolute; inset: 0; width: 0; transition: width .3s;
+    background: repeating-linear-gradient(90deg, #c8432b 0 6px, transparent 6px 10px); }
+  .load-count { font-size: 10px; letter-spacing: .3em; }
 
   @media (max-width: 760px) {
     header, .chapter { padding-left: 16px; padding-right: 16px; }
@@ -195,7 +211,41 @@
 <div class="vignette"></div>
 <div class="scrim"></div>
 <div class="grain"></div>
-<div id="loading">PUTTING ON THE STICKERS…</div>
+<div id="loading">
+  <div class="slaps" id="slaps"></div>
+  <div class="load-copy">
+    <div class="load-title">Putting on the stickers<span class="dots"></span></div>
+    <div class="stitch"><i id="stitch-fill"></i></div>
+    <div class="load-count" id="load-count">0%</div>
+  </div>
+</div>
+<script>
+// Runs before the heavy 3D code: the real patches get slapped onto the loading screen one by one, in a loose
+// collage around the centre, while the progress stitch fills.
+(function () {
+  const files = ['00-india', '01-mumbai', '02-nmims', '03-accenture', '05-usa', '05b-syracuse', '06-chemistry',
+    '06b-darkstore', '07-biztrip', '12-sf', '08-fcb', '09-cat'];
+  const shuffle = function (a) {
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  };
+  shuffle(files);
+  // Slap in a different order from the ring's, so they don't land clockwise.
+  const order = shuffle(files.map(function (_, i) { return i; }));
+  const box = document.getElementById('slaps');
+  files.forEach(function (f, i) {
+    const img = new Image();
+    img.src = 'stickers/' + f + '.png'; img.alt = '';
+    const a = (i / files.length) * Math.PI * 2 + Math.random() * 0.4;
+    const r = 28 + Math.random() * 10;
+    img.style.left = (50 + Math.cos(a) * r * 0.9) + '%';
+    img.style.top = (50 + Math.sin(a) * r) + '%';
+    img.style.setProperty('--rot', (Math.random() * 40 - 20).toFixed(1) + 'deg');
+    img.style.animationDelay = (0.15 + order[i] * 0.16) + 's';
+    box.appendChild(img);
+  });
+})();
+</script>
 
 <header>
   <span class="top-name" id="top-name" lang="hi" title="Click to switch language" data-hi="रोशन खंडेलवाल" data-en="Roshan Khandelwal">रोशन खंडेलवाल</span>
@@ -237,7 +287,7 @@
     <p class="lede">A one-way ticket in 2022. Traded monsoons for lake-effect snow.</p>
     <div class="cities" aria-label="Mumbai, India to Syracuse, USA">
       <span class="city">Mumbai<span class="hang"><span class="flag"><svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#fff"/><rect width="30" height="6.67" fill="#f08a24"/><rect y="13.33" width="30" height="6.67" fill="#1f8a3b"/><circle cx="15" cy="10" r="2.6" fill="none" stroke="#1f3b8f" stroke-width=".7"/><circle cx="15" cy="10" r=".6" fill="#1f3b8f"/></svg></span></span></span>
-      <span class="city-arrow">→</span>
+      <svg class="city-arrow" viewBox="0 0 24 24" aria-hidden="true"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
       <span class="city">Syracuse<span class="hang"><span class="flag"><svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#fff"/><rect y="0.000" width="30" height="1.538" fill="#b22234"/><rect y="3.077" width="30" height="1.538" fill="#b22234"/><rect y="6.154" width="30" height="1.538" fill="#b22234"/><rect y="9.231" width="30" height="1.538" fill="#b22234"/><rect y="12.308" width="30" height="1.538" fill="#b22234"/><rect y="15.385" width="30" height="1.538" fill="#b22234"/><rect y="18.462" width="30" height="1.538" fill="#b22234"/><rect width="13" height="10.77" fill="#3c3b6e"/><circle cx="1.40" cy="1.30" r=".45" fill="#fff"/><circle cx="3.80" cy="1.30" r=".45" fill="#fff"/><circle cx="6.20" cy="1.30" r=".45" fill="#fff"/><circle cx="8.60" cy="1.30" r=".45" fill="#fff"/><circle cx="11.00" cy="1.30" r=".45" fill="#fff"/><circle cx="2.60" cy="3.10" r=".45" fill="#fff"/><circle cx="5.00" cy="3.10" r=".45" fill="#fff"/><circle cx="7.40" cy="3.10" r=".45" fill="#fff"/><circle cx="9.80" cy="3.10" r=".45" fill="#fff"/><circle cx="1.40" cy="4.90" r=".45" fill="#fff"/><circle cx="3.80" cy="4.90" r=".45" fill="#fff"/><circle cx="6.20" cy="4.90" r=".45" fill="#fff"/><circle cx="8.60" cy="4.90" r=".45" fill="#fff"/><circle cx="11.00" cy="4.90" r=".45" fill="#fff"/><circle cx="2.60" cy="6.70" r=".45" fill="#fff"/><circle cx="5.00" cy="6.70" r=".45" fill="#fff"/><circle cx="7.40" cy="6.70" r=".45" fill="#fff"/><circle cx="9.80" cy="6.70" r=".45" fill="#fff"/><circle cx="1.40" cy="8.50" r=".45" fill="#fff"/><circle cx="3.80" cy="8.50" r=".45" fill="#fff"/><circle cx="6.20" cy="8.50" r=".45" fill="#fff"/><circle cx="8.60" cy="8.50" r=".45" fill="#fff"/><circle cx="11.00" cy="8.50" r=".45" fill="#fff"/><circle cx="2.60" cy="10.30" r=".45" fill="#fff"/><circle cx="5.00" cy="10.30" r=".45" fill="#fff"/><circle cx="7.40" cy="10.30" r=".45" fill="#fff"/><circle cx="9.80" cy="10.30" r=".45" fill="#fff"/></svg></span></span></span>
     </div>
   </section>
@@ -259,7 +309,7 @@
     <div class="label">08 · Now · San Francisco · Founding Engineer @ BizTrip&nbsp;AI</div>
     <h2>The quantum leap into <em>AI.</em></h2>
     <p class="subhead">Teaching an AI to book your trip.</p>
-    <p class="lede">An agent that plans, books and changes flights, hotels and cars through airline systems. It's harder than it sounds, hence the face.</p>
+    <p class="lede">An agent that plans, books and changes flights, hotels and cars through airline systems. It's harder than it sounds. But of course, we made it work.</p>
   </section>
   <section class="chapter">
     <div class="label">09 · Off the clock</div>
@@ -308,6 +358,12 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
+// Every GLTF and texture load goes through the default manager, which drives the loading screen's stitch.
+THREE.DefaultLoadingManager.onProgress = (url, loaded, total) => {
+  const pct = Math.round((loaded / total) * 100);
+  document.getElementById('stitch-fill').style.width = pct + '%';
+  document.getElementById('load-count').textContent = pct + '%';
+};
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -315,7 +371,7 @@ import { Pass } from 'three/addons/postprocessing/Pass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { loadHeads, look, STICKER_MESHES } from './head.js';
+import { loadHeads, look, STICKER_MESHES } from './head.js?v=anchor8';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
@@ -678,7 +734,7 @@ let catTick = () => {};
 // bands (tetrahedral layout) — woven red/green/black weave, a gold rim, and a thin black zigzag edge — around white
 // centres. Drawn procedurally in the shader from object-space direction.
 function buildBall() {
-  const geo = new THREE.SphereGeometry(0.075, 64, 40);
+  const geo = new THREE.SphereGeometry(BALL.r, 64, 40);
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.32 });
   mat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader
@@ -970,11 +1026,20 @@ function pushOutOfBust(p, pad = 0) {
   const nx = p.x / (rx * rx), nz = (p.depth - cur.dist) / (rz * rz), nl = Math.hypot(nx, nz);
   return { nx: nx / nl, nz: nz / nl };
 }
-const ball = buildBall(); ball.visible = false; scene.add(camera); camera.add(ball); toSharp(ball);
+// The score card's top edge as a ledge at the given depth, in the same camera space as the floor.
+const scoreEl = document.getElementById('score');
+function scoreLedge(depth) {
+  if (scoreEl.hidden || !scoreEl.classList.contains('on')) return null;
+  const r = scoreEl.getBoundingClientRect();
+  if (!r.width) return null;
+  const hw = halfWidthAt(depth), hh = FLOOR_TAN * depth;
+  return { x0: (r.left / innerWidth * 2 - 1) * hw, x1: (r.right / innerWidth * 2 - 1) * hw, top: (1 - r.top / innerHeight * 2) * hh };
+}
 const BALL_CHAPTER = 9;
 // Ball physics on the shared floor: gravity, the page's bottom edge as the ground, the side edges of the view,
 // the backdrop wall and the bust (keep-out ellipse). A click kicks it in a random direction into the scene.
-const BALL = { r: 0.075, g: -5.5, floorBounce: 0.55, wallBounce: 0.45, sideBounce: 0.6, roll: 0.45, air: 0.15 };
+const BALL = { r: 0.056, g: -5.5, floorBounce: 0.55, wallBounce: 0.45, sideBounce: 0.6, roll: 0.45, air: 0.15 };
+const ball = buildBall(); ball.visible = false; scene.add(camera); camera.add(ball); toSharp(ball);
 const ballP = { x: 0.9, y: 0, depth: 2.4 }, ballVel = new THREE.Vector3();
 let ballDropped = false, ballHover = false;
 const ballRay = new THREE.Raycaster(), ballNdc = new THREE.Vector2();
@@ -1159,12 +1224,14 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
   // The download ships with a display plinth (the only un-skinned mesh); the cat itself is all skinned meshes.
   const plinths = []; model.traverse((o) => { if (o.isMesh && !o.isSkinnedMesh) plinths.push(o); });
   plinths.forEach((o) => o.removeFromParent());
-  // Fur recoloured through a luminance → colour lookup built from the reference ginger cat (grade/catlut.py),
+  // Fur recoloured through a luminance → colour lookup of orange-tabby colours (grade/catlut_orange.py),
   // so the model keeps its own stripes and shading but takes on that palette.
-  const furLut = await new THREE.TextureLoader().loadAsync('models/cats/fur_lut.png');
+  const furLut = await new THREE.TextureLoader().loadAsync('models/cats/fur_lut.png?v=6');
   furLut.colorSpace = THREE.SRGBColorSpace;
   furLut.minFilter = furLut.magFilter = THREE.LinearFilter;
   model.traverse((o) => {
+    // The iris material ('material') ships green; amber to match the ginger palette.
+    if (o.isMesh && o.material.name === 'material') { o.material.color.setRGB(0.51, 0.40, 0.08); o.material.metalness = 0.3; }
     if (!o.isMesh || o.material.name !== 'SomaliTexture') return;
     o.material.onBeforeCompile = (sh) => {
       sh.uniforms.uFurLut = { value: furLut };
@@ -1261,6 +1328,7 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
   });
 
   const WALK_SPEED = bodyLen * 0.5;
+  let avoidSide = 0;
   let nextRest = 7 + Math.random() * 6;
   cat.visible = false;
   catTick = (dt) => {
@@ -1273,6 +1341,7 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
       const px = card.width ? card.left - 110 : innerWidth * 0.75;
       pos.x = (px / innerWidth * 2 - 1) * halfWAt(pos.off) - bodyLen * 0.5; heading = Math.PI / 2;
       target.off = pos.off; target.x = -0.35 * halfWAt(pos.off);
+      while (keepOutD(target.x, target.off) < 1.25) target.x -= 0.05;
       playMeow(false);
     }
     stateT += dt;
@@ -1301,9 +1370,12 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
           const ax = pos.x / KEEP_OUT.rx, az = (pos.off - cur.dist) / KEEP_OUT.rz, al = Math.hypot(ax, az) || 1;
           const w = (1.6 - kd) * 2.2;
           // Tangential slide (keeps it circling round rather than stopping) plus a radial push.
-          const tx = -az / al, tz = ax / al, side = Math.sign(tx * sx - tz * sz) || 1;
+          const tx = -az / al, tz = ax / al;
+          // Commit to one way round; re-deciding every frame flips it left/right when the target is dead ahead.
+          if (!avoidSide) avoidSide = Math.sign(tx * sx - tz * sz) || 1;
+          const side = avoidSide;
           sx += (ax / al) * w + tx * w * side; sz += -(az / al) * w - tz * w * side;
-        }
+        } else avoidSide = 0;
         const want = Math.atan2(-sx, -sz);
         let d = want - heading; d = Math.atan2(Math.sin(d), Math.cos(d));
         heading += d * Math.min(1, dt * 2.5);
@@ -1324,17 +1396,24 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
     } else if (state === 'standUp' && stateT > A.standUp.getClip().duration) {
       state = 'walk'; stateT = 0; nextRest = 9 + Math.random() * 8; pickTarget(); go(A.walk, 0.3);
     }
+    if (state === 'sitDown' || state === 'sit') {
+      // Settles facing the viewer (heading π walks toward the camera).
+      let d = Math.PI - heading; d = Math.atan2(Math.sin(d), Math.cos(d));
+      heading += d * Math.min(1, dt * 3);
+    }
     cat.position.set(pos.x, floorY(pos.off), -pos.off);
     placeSay();
     cat.rotation.y = heading;
     mixer.update(dt);
   };
 }
-document.getElementById('loading').style.opacity = 0;
-setTimeout(() => document.getElementById('loading').remove(), 700);
+document.getElementById('stitch-fill').style.width = '100%';
+document.getElementById('load-count').textContent = '100%';
+setTimeout(() => { const l = document.getElementById('loading'); l.classList.add('done'); l.style.opacity = 0; setTimeout(() => l.remove(), 700); }, 350);
 
 // One entry per <section class="chapter">. `yaw` is the sticker angle to present to the camera (the head turns by
-// -yaw); values keep decreasing so the head always turns the same way round, through the back of the head.
+// -yaw), always turning the same way. Every face change routes the turn through the back of the head, where the
+// swap happens unseen: Accenture → the move, and research → Dark Store.
 // The plane shot frames the hair so the neck stickers stay hidden until the final chapter.
 // `y` is the height the camera frames and `dist` how close it gets.
 const SHOTS = [
@@ -1342,23 +1421,28 @@ const SHOTS = [
   { yaw: -22, y: 0.14, dist: 2.0 },
   { yaw: -56, y: -0.04, dist: 1.9 },
   { yaw: -40, y: -0.18, dist: 1.9 },
-  { yaw: -180, y: 0.02, dist: 3.6 },
+  { yaw: -360, y: 0.08, dist: 3.4 },
   { yaw: -304, y: -0.02, dist: 1.9 },
   { yaw: -290, y: -0.30, dist: 2.0 },
-  { yaw: -252, y: -0.16, dist: 2.1 },
-  { yaw: -360, y: 0.02, dist: 3.0 },
-  { yaw: -565, y: -0.22, dist: 2.6 },
+  { yaw: -612, y: -0.16, dist: 2.1 },
+  { yaw: -720, y: 0.02, dist: 3.0 },
+  { yaw: -894, y: -0.22, dist: 2.6 },
 ];
 // The patch each chapter is about, by chapter index.
 const CHAPTER_STICKERS = [
-  [], ['00-india.png', '01-mumbai.png'], ['02-nmims.png'], ['03-accenture.png'], ['05-usa.png'],
+  [], ['00-india.png', '01-mumbai.png'], ['02-nmims.png', '01-mumbai.png'], ['03-accenture.png'], ['05-usa.png'],
   ['05b-syracuse.png'], ['06-chemistry.png'], ['06b-darkstore.png'], ['07-biztrip.png'], ['08-fcb.png', '12-sf.png', '09-cat.png'],
 ];
-// The face is swapped while the back of the head is to the camera, so the change is never seen happening.
-const SWAP_YAW = -180;
+// Three faces across the story: smug (intro → Accenture), grimace (the move → research), whistle (Dark Store →
+// end). Each swap happens as the turn passes the back of the head (yaw -180 and -540), so it is never seen.
+const FACE_AT = [[-180, 'smug'], [-540, 'grimace'], [-Infinity, 'whistle']];
 function showFaces(yaw) {
-  heads.smug.root.visible = yaw > SWAP_YAW;
-  heads.grimace.root.visible = yaw <= SWAP_YAW;
+  const want = FACE_AT.find(([limit]) => yaw > limit)[1];
+  const order = ['smug', 'grimace', 'whistle'];
+  // A face that hasn't loaded yet is stood in for by the previous one.
+  let key = want;
+  for (let i = order.indexOf(want); i >= 0 && !heads[key]; i--) key = order[i];
+  Object.entries(heads).forEach(([k, h]) => { h.root.visible = k === key; });
 }
 
 const sections = [...document.querySelectorAll('.chapter')];
@@ -1555,14 +1639,16 @@ renderer.setAnimationLoop(() => {
     m.g.scale.setScalar(m.size * (k + Math.sin(k * Math.PI) * 0.25));
   });
   {
-    if (!ballDropped && chapterPos() > BALL_CHAPTER - 0.4) {
+    if (!ballDropped && chapterPos() > BALL_CHAPTER - 0.4 && (scoreEl.hidden || scoreEl.classList.contains('on'))) {
       ballDropped = true; ball.visible = true;
-      // Drops in just off the bust's left shoulder, where the t-shirt starts.
-      ballP.depth = cur.dist - 0.15; ballP.x = -(KEEP_OUT.rx + BALL.r + 0.02); ballP.y = floorAt(ballP.depth) + 0.9;
-      ballVel.set(0.1, 0, 0);
+      // Falls in from above the score card, so it lands on the card before dropping to the floor.
+      ballP.depth = cur.dist - 0.15;
+      const card = scoreLedge(ballP.depth);
+      ballP.x = card ? (card.x0 + card.x1) / 2 : halfWidthAt(ballP.depth) * 0.75;
+      ballP.y = FLOOR_TAN * ballP.depth + BALL.r * 2;
+      ballVel.set(0, 0, 0);
     }
-    if (ballDropped) ball.visible = chapterPos() > BALL_CHAPTER - 0.5;
-    if (ballDropped && ball.visible) {
+    if (ballDropped) {
       const STEPS = 6, h = dt / STEPS, wallDepth = cur.dist + 1.4 - BALL.r;
       for (let i = 0; i < STEPS; i++) {
         ballVel.y += BALL.g * h;
@@ -1570,7 +1656,16 @@ renderer.setAnimationLoop(() => {
         // Coming back toward the viewer it eases off near the front instead of hitting an invisible barrier.
         if (ballVel.z < 0 && ballP.depth < 2.4) ballVel.z *= 1 - (2.4 - ballP.depth) * 3 * h;
         ballP.x += ballVel.x * h; ballP.y += ballVel.y * h; ballP.depth += ballVel.z * h;
-        const ground = floorAt(ballP.depth) + BALL.r;
+        let ground = floorAt(ballP.depth) + BALL.r;
+        const card = scoreLedge(ballP.depth);
+        if (card && ballP.x > card.x0 && ballP.x < card.x1 && ballP.y > card.top) {
+          ground = card.top + BALL.r;
+          // The card is a ledge the ball should leave, so it always rolls off towards the open floor.
+          if (ballP.y <= ground + 1e-3) ballVel.x = Math.min(ballVel.x, -0.35);
+        } else if (card && ballP.x > card.x0 - BALL.r && ballP.y <= ground + 1e-3) {
+          // Never come to rest hidden behind the card.
+          ballVel.x = Math.min(ballVel.x, -0.3);
+        }
         if (ballP.y < ground) {
           ballP.y = ground;
           if (ballVel.y < -0.8) playKick(Math.min(1, -ballVel.y / 4) * 0.6);
