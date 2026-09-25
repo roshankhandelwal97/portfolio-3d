@@ -121,8 +121,9 @@ export const STICKERS = [
   { file: '06b-darkstore.png', yaw: 112, y: -0.14, size: 0.15, tilt: 8 },
   { file: '07-biztrip.png', yaw: 0, y: -0.50, size: 0.42, tilt: -6, grimace: { y: -0.42 } },
   { file: '03-accenture.png', yaw: -40, y: -0.22, size: 0.26, tilt: -10 },
-  { file: '09-cat.png', yaw: 205, y: -0.32, size: 0.20, tilt: 12 },
-  { file: '08-fcb.png', yaw: 150, y: -0.34, size: 0.16, tilt: -8 },
+  { file: '09-cat.png', yaw: 222, y: -0.32, size: 0.15, tilt: 12 },
+  { file: '12-sf.png', yaw: 186, y: -0.3, size: 0.17, tilt: -4 },
+  { file: '08-fcb.png', yaw: 140, y: -0.34, size: 0.13, tilt: -8 },
 ];
 const texLoader = new THREE.TextureLoader();
 const stickerTex = Object.fromEntries(await Promise.all(STICKERS.map(async (st) => {

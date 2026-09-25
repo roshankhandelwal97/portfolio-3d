@@ -109,6 +109,9 @@
   .brew { height: 1.25em; width: auto; margin-left: .12em; vertical-align: -0.28em; transform-origin: 50% 90%;
     filter: drop-shadow(0 3px 5px rgba(0,0,0,.2)); animation: clink 4s ease-in-out infinite; }
   @keyframes clink { 0%, 80%, 100% { transform: rotate(-6deg); } 84% { transform: rotate(4deg); } 88% { transform: rotate(-10deg); } 92% { transform: rotate(0deg); } }
+  /* Chapter labels stay on one line on wide screens; phones let them wrap. */
+  .chapter > .label { white-space: nowrap; max-width: none; }
+  @media (max-width: 760px) { .chapter > .label { white-space: normal; } }
   .nowrap { white-space: nowrap; }
   .lede code { font-family: inherit; color: var(--ink); }
   .lede { max-width: 42ch; font-size: 13px; line-height: 1.7; color: var(--ink-soft); margin-top: 20px; }
@@ -225,7 +228,7 @@
   </section>
   <section class="chapter">
     <div class="label">03 · Accenture · 2019–22</div>
-    <h2>Where I learned the <em>craft.</em></h2>
+    <h2>Where I learned the <em>ropes.</em></h2>
     <p class="lede">At Accenture I learned the fundamentals the enterprise way, building and maintaining big systems for real users with zero room for downtime. It taught me how software is built, shipped and kept running.</p>
   </section>
   <section class="chapter">
@@ -253,7 +256,7 @@
     <p class="lede">Dark Store — food &amp; drink delivery app, Top 50 in its App Store category. Hatchery incubator, NVIDIA Inception.</p>
   </section>
   <section class="chapter">
-    <div class="label">08 · Now · Founding Engineer @ BizTrip AI</div>
+    <div class="label">08 · Now · San Francisco · Founding Engineer @ BizTrip&nbsp;AI</div>
     <h2>The quantum leap into <em>AI.</em></h2>
     <p class="subhead">Teaching an AI to book your trip.</p>
     <p class="lede">An agent that plans, books and changes flights, hotels and cars through airline systems. It's harder than it sounds, hence the face.</p>
@@ -293,7 +296,7 @@
     <a href="https://sketchfab.com/3d-models/somali-cat-animated-ver-12-e185c3fd92b64c32b4515a32b29252fc">Cat model</a> by DreamNoms, CC BY 4.0<br>
     <a href="https://commons.wikimedia.org/wiki/File:428086_inspectorj_airplane-boeing-flyby-right-to-left-a.wav">Plane sound</a> by InspectorJ, CC BY 4.0<br>
     <a href="https://commons.wikimedia.org/wiki/File:Soccer_kick_effect.ogg">Kick sound</a>, CC BY-SA 3.0<br>
-    Cat meow and purr: public domain
+    Cat meow: public domain
   </div>
 </div>
 
@@ -1231,20 +1234,15 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
     playMeow();
     if (state === 'walk') { state = 'sitDown'; stateT = 0; go(A.sitDown); }
   });
-  // Real recordings (public domain, Wikimedia Commons): one of three meows, then a purr.
+  // Real recordings (public domain, Wikimedia Commons): one of three meows.
   const meows = [1, 2, 3].map((n) => Object.assign(new Audio(`audio/meow-${n}.mp3`), { preload: 'auto' }));
-  const purr = Object.assign(new Audio('audio/purr.mp3'), { preload: 'auto', volume: 0.7 });
-  catAudio.stop = () => { meows.forEach((a) => a.pause()); purr.pause(); clearTimeout(purrTimer); };
-  let purrTimer = 0;
+  catAudio.stop = () => { meows.forEach((a) => a.pause()); };
   function playMeow(force = true) {
     if (!force && nowS() < soundBusyUntil) return;
     planeSound.pause();
-    // Meow plus purr runs about 5s.
-    soundBusyUntil = nowS() + 5.5;
+    soundBusyUntil = nowS() + 2;
     meows.forEach((a) => a.pause());
     const m = meows[Math.floor(Math.random() * meows.length)]; m.currentTime = 0; m.play().catch(() => {});
-    purr.pause(); purr.currentTime = 0;
-    purrTimer = setTimeout(() => purr.play().catch(() => {}), 900);
   }
   // The bubble follows the cat's head while it shows.
   let sayUntil = 0;
@@ -1343,7 +1341,7 @@ const SHOTS = [
   { yaw: -22, y: 0.14, dist: 2.0 },
   { yaw: -56, y: -0.04, dist: 1.9 },
   { yaw: -40, y: -0.18, dist: 1.9 },
-  { yaw: -180, y: 0.45, dist: 2.8 },
+  { yaw: -180, y: 0.02, dist: 3.6 },
   { yaw: -304, y: -0.02, dist: 1.9 },
   { yaw: -290, y: -0.30, dist: 2.0 },
   { yaw: -252, y: -0.16, dist: 2.1 },
@@ -1353,7 +1351,7 @@ const SHOTS = [
 // The patch each chapter is about, by chapter index.
 const CHAPTER_STICKERS = [
   [], ['00-india.png', '01-mumbai.png'], ['02-nmims.png'], ['03-accenture.png'], ['05-usa.png'],
-  ['05b-syracuse.png'], ['06-chemistry.png'], ['06b-darkstore.png'], ['07-biztrip.png'], ['08-fcb.png', '09-cat.png'],
+  ['05b-syracuse.png'], ['06-chemistry.png'], ['06b-darkstore.png'], ['07-biztrip.png'], ['08-fcb.png', '12-sf.png', '09-cat.png'],
 ];
 // The face is swapped while the back of the head is to the camera, so the change is never seen happening.
 const SWAP_YAW = -180;

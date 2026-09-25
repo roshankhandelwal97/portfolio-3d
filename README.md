@@ -23,5 +23,5 @@ python3 -m http.server 8000   # then open http://localhost:8000
 - MacBook: "2021 Macbook Pro 14\" (M1 Pro / M1 Max)" by [akshatmittal](https://sketchfab.com/3d-models/2021-macbook-pro-14-m1-pro-m1-max-f6b0b940fb6a4286b18a674ef32af2d3), CC BY 4.0 (logo removed, recoloured)
 - Plane flyby: [InspectorJ](https://commons.wikimedia.org/wiki/File:428086_inspectorj_airplane-boeing-flyby-right-to-left-a.wav), CC BY 4.0 (trimmed)
 - Football kick: [Soccer kick effect](https://commons.wikimedia.org/wiki/File:Soccer_kick_effect.ogg), CC BY-SA 3.0 (trimmed)
-- Cat meow and purr: [Meow of a pleading cat](https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga) and [Purring cat](https://commons.wikimedia.org/wiki/File:Purring_cat.oga), public domain
+- Cat meow: [Meow of a pleading cat](https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga) , public domain
 - Latest Barça result: ESPN public scoreboard API
