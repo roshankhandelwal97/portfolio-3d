@@ -1,4 +1,4 @@
-[# Roshan Khandelwal — portfolio](https://roshan-khandelwal-eight.vercel.app/)
+# [Roshan Khandelwal — portfolio](https://roshan-khandelwal-eight.vercel.app/)
 
 A scroll-driven 3D portfolio: a stylized bust covered in embroidered patches that turns to each chapter of the story,
 with cursor-tracking eyes, an orbiting plane, a wandering cat and a kickable football.
