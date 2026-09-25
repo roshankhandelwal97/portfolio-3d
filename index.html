@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roshan Khandelwal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #b4ba9b;
+    --ink: #1d2433;
+    --ink-soft: #3f4637;
+    --accent: #c8432b;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: var(--paper); color: var(--ink); }
+  body { font-family: "JetBrains Mono", ui-monospace, monospace; overflow-x: hidden; }
+
+  #stage { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  .vignette { position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 60% 45%, transparent 45%, rgba(60,50,30,.18) 100%); }
+  .grain { position: fixed; inset: -50%; pointer-events: none; opacity: .2; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    animation: grain 1s steps(6) infinite; }
+  @keyframes grain { 0%{transform:translate(0,0)} 20%{transform:translate(-3%,2%)} 40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-1%)} 80%{transform:translate(3%,3%)} 100%{transform:translate(0,0)} }
+
+  header { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between;
+    padding: 28px 40px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; z-index: 5; }
+  header .muted { color: var(--ink-soft); }
+  .head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+  /* Revealed once the visitor reaches the end of the story, then kept. */
+  .socials { display: flex; gap: 10px; opacity: 0; transform: translateY(-8px); pointer-events: none;
+    transition: opacity .5s ease, transform .5s ease; }
+  .socials.on { opacity: 1; transform: none; pointer-events: auto; }
+  .socials .patch img { width: 44px; height: 44px; }
+
+  main { position: relative; z-index: 2; }
+  .chapter { height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 40px 9vh; }
+  .chapter > * { max-width: 34vw; }
+  .chapter h1, .chapter h2, .chapter .lede { text-shadow: 0 1px 18px rgba(180,186,155,.9); }
+  .label { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 14px; }
+  h1, h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; line-height: .95; letter-spacing: -.01em; }
+  h1 { font-size: clamp(56px, 9vw, 150px); }
+  h2 { font-size: clamp(38px, 5.2vw, 84px); }
+  h2 em, h1 em { color: var(--accent); }
+  .lede { max-width: 42ch; font-size: 13px; line-height: 1.7; color: var(--ink-soft); margin-top: 20px; }
+  .chapter .lede, .chapter h1, .chapter h2, .chapter .label { opacity: 0; transform: translateY(18px);
+    transition: opacity .6s ease, transform .6s ease; }
+  .chapter.on .lede, .chapter.on h1, .chapter.on h2, .chapter.on .label { opacity: 1; transform: none; }
+  .chapter.on .lede { transition-delay: .12s; }
+  a { color: var(--ink); }
+  .score { display: inline-flex; flex-direction: column; gap: 4px; margin-top: 20px; padding: 10px 14px;
+    background: #1d2433; color: #f4f1ea; border-radius: 10px; width: max-content; }
+  .score-label { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #edbb3a; }
+  .score-line { font-size: 15px; letter-spacing: .04em; }
+  .score-line em { font-style: normal; color: #edbb3a; padding: 0 6px; font-weight: 600; }
+  .score-meta { font-size: 10px; letter-spacing: .1em; color: #a9adbb; text-transform: uppercase; }
+  .patch img { width: 72px; height: 72px; display: block; transition: transform .25s ease; }
+  .patch:hover img { transform: rotate(-8deg) scale(1.08); }
+  .links { display: flex; gap: 24px; margin-top: 28px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+
+  .scroll-hint { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); font-size: 10px;
+    letter-spacing: .3em; color: var(--ink-soft); z-index: 3; transition: opacity .4s; }
+  #cat-say { position: fixed; bottom: 150px; z-index: 7; font-size: 12px; letter-spacing: .1em; color: var(--ink);
+    background: #f7f4ea; border-radius: 12px; padding: 4px 9px; opacity: 0; transform: translate(-50%, 6px) scale(.9);
+    transition: opacity .2s, transform .2s; pointer-events: none; }
+  #cat-say.on { opacity: 1; transform: translate(-50%, 0); }
+  .credits { position: fixed; right: 12px; bottom: 6px; z-index: 7; font-size: 9px; color: var(--ink-soft); opacity: .7; }
+  .credits a { color: inherit; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); z-index: 10;
+    font-size: 11px; letter-spacing: .3em; color: var(--ink-soft); transition: opacity .6s; }
+
+  @media (max-width: 760px) {
+    header, .chapter { padding-left: 16px; padding-right: 16px; }
+    .chapter { justify-content: flex-end; padding-bottom: 9vh; }
+    .chapter > * { max-width: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div id="loading">PUTTING ON THE STICKERS…</div>
+
+<header>
+  <span>Roshan Khandelwal</span>
+  <div class="head-right">
+    <span class="muted">Full-stack &amp; AI</span>
+    <div class="socials" id="socials">
+      <a class="patch" href="https://github.com/roshankhandelwal97" aria-label="GitHub"><img src="stickers/10-github-sm.png" alt="GitHub"></a>
+      <a class="patch" href="https://www.linkedin.com/in/rokhande/" aria-label="LinkedIn"><img src="stickers/11-linkedin-sm.png" alt="LinkedIn"></a>
+    </div>
+  </div>
+</header>
+
+<main id="chapters">
+  <section class="chapter">
+    <div class="label">Hi, I'm</div>
+    <h1>Roshan<br>Khandelwal</h1>
+    <p class="lede">Full-stack &amp; AI engineer. I build software that ships — right now, an AI agent that plans and books business travel.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">01 · Origin</div>
+    <h2>Made in <em>India.</em></h2>
+    <p class="lede">Where the story starts.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">02 · Mumbai</div>
+    <h2>Grew up in Mumbai.</h2>
+    <p class="lede">Local trains, vada pav, and a city that never waits for you.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">03 · NMIMS · 2015–19</div>
+    <h2>B.Tech, Computer Engineering.</h2>
+    <p class="lede">Data structures, algorithms, AI &amp; ML, theory of computation — and the first things I shipped.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">04 · Accenture · 2019–22</div>
+    <h2>Identity at scale.</h2>
+    <p class="lede">Senior Software Developer. SSO and MFA for 50+ healthcare portals — Java Spring Boot, Akamai Identity Cloud, AWS Lambda and Redshift.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">05 · 2022</div>
+    <h2>Then I got on a <em>plane.</em></h2>
+    <p class="lede">Mumbai → Syracuse, one-way.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">06 · Syracuse University · 2022–24</div>
+    <h2>MS, Computer Engineering.</h2>
+    <p class="lede">NLP, data mining, blockchain, internet security — and very long winters.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">07 · Research · Prof. Atanu Acharya's lab</div>
+    <h2>Molecules, in 3D.</h2>
+    <p class="lede">An ed-tech platform with 50+ interactive 3D molecular simulations, and ML pipelines predicting protein structure from molecular dynamics.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">08 · Dark Store · 2025</div>
+    <h2>Co-founded a <em>startup.</em></h2>
+    <p class="lede">Dark Store — food &amp; drink delivery app, Top 50 in its App Store category. Hatchery incubator, NVIDIA Inception.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">09 · Now · BizTrip AI</div>
+    <h2>Teaching an AI to book your <em>trip.</em></h2>
+    <p class="lede">An agent that plans, books and changes flights, hotels and cars through airline systems. It's harder than it sounds — hence the face.</p>
+  </section>
+  <section class="chapter">
+    <div class="label">10 · Off the clock</div>
+    <h2>Barça, and an orange cat.</h2>
+    <p class="lede">Weekends are football and a very opinionated cat. Up for a conversation — or better, a coffee.</p>
+    <div class="score" id="score" hidden>
+      <span class="score-label">Last match</span>
+      <span class="score-line"><b id="score-home"></b> <em id="score-result"></em> <b id="score-away"></b></span>
+      <span class="score-meta" id="score-meta"></span>
+    </div>
+  </section>
+</main>
+<div class="scroll-hint" id="hint">SCROLL</div>
+<span id="cat-say">meow!</span>
+<div class="credits">Cat: <a href="https://sketchfab.com/3d-models/somali-cat-animated-ver-12-e185c3fd92b64c32b4515a32b29252fc">DreamNoms</a>, CC-BY 4.0</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { loadHeads, look } from './head.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+
+const canvas = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+const key = new THREE.DirectionalLight(0xfff1dc, 2.2); key.position.set(-2, 3, 3); scene.add(key);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+// A near-frontal light used only for its shadow, so the silhouette lands just behind and beside the bust on a
+// wall the camera always faces (the camera only translates; it never turns).
+const shadowLight = new THREE.DirectionalLight(0xffffff, 0.25);
+shadowLight.position.set(-1.8, 1.4, 4);
+shadowLight.castShadow = true;
+shadowLight.shadow.mapSize.set(2048, 2048);
+shadowLight.shadow.radius = 14;
+shadowLight.shadow.blurSamples = 20;
+Object.assign(shadowLight.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 10 });
+scene.add(shadowLight);
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: 0.3 }));
+wall.position.z = -1.4;
+wall.receiveShadow = true;
+scene.add(wall);
+
+// Backdrop lives in the scene (not CSS) so depth of field softens it along with everything behind the focus.
+function paperTexture(specks) {
+  const c = document.createElement('canvas'); c.width = c.height = 1024;
+  const g = c.getContext('2d');
+  if (!specks) {
+    g.fillStyle = '#b4ba9b'; g.fillRect(0, 0, 1024, 1024);
+    for (let i = 0; i < 9000; i++) {
+      g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,240' : '60,66,48'},${Math.random() * 0.06})`;
+      g.fillRect(Math.random() * 1024, Math.random() * 1024, 1 + Math.random() * 3, 1);
+    }
+  } else {
+    for (let i = 0; i < 70; i++) {
+      g.fillStyle = `rgba(46,52,40,${0.25 + Math.random() * 0.45})`;
+      g.beginPath();
+      g.ellipse(Math.random() * 1024, Math.random() * 1024, 1 + Math.random() * 2.5, 0.8 + Math.random() * 1.5,
+        Math.random() * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(10, 10);
+  return t;
+}
+const paper = new THREE.Mesh(new THREE.PlaneGeometry(40, 40),
+  new THREE.MeshBasicMaterial({ map: paperTexture(false), toneMapped: false }));
+paper.position.z = -1.5;
+scene.add(paper);
+const specks = new THREE.Mesh(new THREE.PlaneGeometry(40, 40),
+  new THREE.MeshBasicMaterial({ map: paperTexture(true), transparent: true, toneMapped: false, depthWrite: false }));
+specks.position.z = -1.45;
+scene.add(specks);
+const rim = new THREE.DirectionalLight(0xbcd2ff, 1.6); rim.position.set(2.5, 1.5, -2.5); scene.add(rim);
+scene.add(new THREE.HemisphereLight(0xfff6e8, 0x6b604c, 0.5));
+
+const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 50);
+const pivot = new THREE.Group(); pivot.position.y = -0.35; scene.add(pivot);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bokeh = new BokehPass(scene, camera, { focus: 3, aperture: 0.006, maxblur: 0.008 });
+// Blur only what is behind the focal plane; anything nearer than the head (the cat coming toward you) stays sharp.
+bokeh.materialBokeh.fragmentShader = bokeh.materialBokeh.fragmentShader
+  .replace('float factor = ( focus + viewZ );', 'float factor = min( focus + viewZ, 0.0 );');
+bokeh.materialBokeh.needsUpdate = true;
+composer.addPass(bokeh);
+composer.addPass(new OutputPass());
+
+let catTick = () => {};
+
+// Football for the last chapter, in the style of the 2010 match ball: white, with four rounded-triangle panel
+// bands (tetrahedral layout) — woven red/green/black weave, a gold rim, and a thin black zigzag edge — around white
+// centres. Drawn procedurally in the shader from object-space direction.
+function buildBall() {
+  const geo = new THREE.SphereGeometry(0.075, 64, 40);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.32 });
+  mat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vBallP;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvBallP = normalize(position);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vBallP;`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+        {
+          vec3 p = normalize(vBallP);
+          const float s = 0.57735;
+          vec3 axes[4] = vec3[4](vec3(s, s, s), vec3(s, -s, -s), vec3(-s, s, -s), vec3(-s, -s, s));
+          vec3 col = vec3(0.97, 0.97, 0.96);
+          vec3 gold = vec3(0.93, 0.7, 0.12), blk = vec3(0.03), red = vec3(0.34, 0.05, 0.02), grn = vec3(0.04, 0.22, 0.06);
+          for (int i = 0; i < 4; i++) {
+            vec3 a = axes[i];
+            vec3 u = normalize(cross(a, vec3(0.0, 0.31, 1.0))), v = cross(a, u);
+            float ang = atan(dot(p, v), dot(p, u)) + float(i) * 0.7;
+            float rad = acos(clamp(dot(p, a), -1.0, 1.0));
+            // Rounded triangle: radius swells toward three corners around each panel axis.
+            float m = rad * (1.0 - 0.13 * cos(3.0 * ang));
+            float inner = 0.46, outer = 0.8;
+            if (m < inner || m > outer + 0.035) continue;
+            float t = (m - inner) / (outer - inner);
+            // Woven band: red → green across the panel, crossed by fine dark stitch lines.
+            vec3 band = mix(red, grn, smoothstep(-0.6, 0.9, sin(ang * 1.5 + float(i))));
+            float stitch = step(0.55, fract(ang * 46.0 + t * 7.0)) * 0.75 + step(0.8, fract(t * 18.0)) * 0.5;
+            float fleck = step(0.9, fract(ang * 23.0 - t * 11.0));
+            band = mix(band, vec3(0.85, 0.45, 0.1), fleck * 0.6);
+            band = mix(band, blk, clamp(stitch, 0.0, 1.0));
+            vec3 c = band;
+            c = mix(c, gold, smoothstep(0.83, 0.85, t) * (1.0 - smoothstep(0.96, 0.98, t)));
+            c = mix(c, col, smoothstep(0.03, 0.0, t));
+            // Thin black zigzag border just outside the gold rim.
+            float zz = outer + 0.012 + 0.008 * abs(fract(ang * 24.0) * 2.0 - 1.0);
+            float edge = smoothstep(outer + 0.002, outer + 0.004, m) * (1.0 - smoothstep(zz, zz + 0.003, m));
+            c = mix(c, blk, edge);
+            if (m > outer + 0.004) c = mix(col, blk, edge);
+            col = c;
+          }
+          diffuseColor.rgb = col;
+        }`);
+  };
+  const m = new THREE.Mesh(geo, mat);
+  m.castShadow = true;
+  return m;
+}
+
+// Latest completed Barcelona result across competitions, from ESPN's public (keyless, CORS-open) scoreboard API.
+// Any failure just leaves the card hidden.
+(async () => {
+  const leagues = ['esp.1', 'uefa.champions', 'esp.copa_del_rey', 'esp.super_cup', 'all'];
+  const lists = await Promise.all(leagues.map((l) =>
+    fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${l}/teams/83/schedule`)
+      .then((r) => r.json()).then((d) => d.events || []).catch(() => [])));
+  const done = lists.flat().filter((e) => e.competitions?.[0]?.status?.type?.completed)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const e = done[0];
+  if (!e) return;
+  const c = e.competitions[0];
+  const side = (ha) => c.competitors.find((t) => t.homeAway === ha);
+  const score = (t) => (typeof t.score === 'object' ? t.score.displayValue : t.score);
+  const home = side('home'), away = side('away');
+  document.getElementById('score-home').textContent = home.team.shortDisplayName || home.team.displayName;
+  document.getElementById('score-away').textContent = away.team.shortDisplayName || away.team.displayName;
+  document.getElementById('score-result').textContent = `${score(home)}–${score(away)}`;
+  const when = new Date(e.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  document.getElementById('score-meta').textContent = `${e.league?.name ?? e.season?.displayName ?? ''} · ${when}`.replace(/^ · /, '');
+  document.getElementById('score').hidden = false;
+})();
+const heads = await loadHeads(pivot);
+
+function buildPlane() {
+  const white = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.55 });
+  const blue = new THREE.MeshStandardMaterial({ color: 0x2f5bd3, roughness: 0.5 });
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.018, 0.12, 6, 12), white);
+  body.rotation.z = Math.PI / 2; g.add(body);
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.004, 0.17), white); wing.position.x = 0.005; g.add(wing);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.003, 0.07), white); tail.position.x = -0.07; g.add(tail);
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.003), blue); fin.position.set(-0.072, 0.022, 0); g.add(fin);
+  [-0.045, 0.045].forEach((z) => {
+    const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.03, 10), blue);
+    eng.rotation.z = Math.PI / 2; eng.position.set(0.015, -0.012, z); g.add(eng);
+  });
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+const plane = buildPlane();
+plane.visible = false;
+scene.add(plane);
+// The plane takes off when the "got on a plane" chapter is reached, then circles the head for the rest of the visit.
+const PLANE_CHAPTER = 5;
+const TAKEOFF = { from: new THREE.Vector3(-3.2, -0.6, 1.4), duration: 1.8 };
+let takeoffAt = null;
+// Tilted ellipse around the head, drawn in world space so it ignores the head's own rotation.
+const ORBIT = { cx: 0, cy: 0.35, rx: 0.95, rz: 0.8, tilt: 0.22, speed: 0.35 };
+const orbitPos = (a, out) => out.set(ORBIT.cx + Math.cos(a) * ORBIT.rx,
+  ORBIT.cy + Math.sin(a) * ORBIT.rz * ORBIT.tilt, Math.sin(a) * ORBIT.rz);
+const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3();
+
+// Ball-and-stick molecules (standard CPK colours) that surface for the research chapter only.
+const ATOM = {
+  C: { color: 0x3a3d45, r: 0.034 }, O: { color: 0xe0443a, r: 0.032 },
+  N: { color: 0x3f6fe0, r: 0.032 }, H: { color: 0xf2f2ee, r: 0.02 },
+};
+function buildMolecule(atoms, bonds) {
+  const g = new THREE.Group();
+  const stick = new THREE.MeshStandardMaterial({ color: 0xd9d6cc, roughness: 0.5 });
+  const pos = atoms.map(([, x, y, z]) => new THREE.Vector3(x, y, z));
+  atoms.forEach(([el], i) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(ATOM[el].r, 20, 14),
+      new THREE.MeshStandardMaterial({ color: ATOM[el].color, roughness: 0.35 }));
+    m.position.copy(pos[i]); g.add(m);
+  });
+  bonds.forEach(([i, j]) => {
+    const a = pos[i], b = pos[j], len = a.distanceTo(b);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, len, 8), stick);
+    m.position.copy(a).lerp(b, 0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    g.add(m);
+  });
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+const ring = [...Array(6)].map((_, i) => [Math.cos(i * Math.PI / 3) * 0.09, Math.sin(i * Math.PI / 3) * 0.09, 0]);
+const benzene = buildMolecule(
+  [...ring.map((p) => ['C', ...p]), ...ring.map(([x, y]) => ['H', x * 1.7, y * 1.7, 0])],
+  [...ring.map((_, i) => [i, (i + 1) % 6]), ...ring.map((_, i) => [i, i + 6])]);
+const water = buildMolecule([['O', 0, 0, 0], ['H', 0.07, 0.05, 0], ['H', -0.07, 0.05, 0]], [[0, 1], [0, 2]]);
+const amine = buildMolecule(
+  [['N', 0, 0, 0], ['C', 0.1, 0.03, 0], ['O', 0.16, 0.1, 0], ['C', -0.08, 0.06, 0.03], ['H', 0.01, -0.08, 0.02],
+   ['H', -0.13, 0.02, 0.07], ['C', 0.16, -0.06, -0.02]],
+  [[0, 1], [1, 2], [0, 3], [0, 4], [3, 5], [1, 6]]);
+const MOLECULES = [
+  { g: benzene, at: new THREE.Vector3(0.52, 0.0, 0.25), spin: 0.5, size: 0.9 },
+  { g: amine, at: new THREE.Vector3(0.72, -0.5, 0.05), spin: 0.6, size: 0.8 },
+  { g: water, at: new THREE.Vector3(0.3, -0.72, 0.35), spin: 0.8, size: 0.8 },
+  { g: water.clone(), at: new THREE.Vector3(0.12, 0.12, 0.5), spin: 1.0, size: 0.55 },
+];
+MOLECULES.forEach((m) => { m.g.visible = false; scene.add(m.g); });
+const RESEARCH_CHAPTER = 7;
+
+// Dark Store chapter: a phone showing the app, floating beside the head. Kept in camera space so it frames the
+// same way regardless of that chapter's camera shot.
+const DARKSTORE_CHAPTER = 8;
+const phone = new THREE.Group();
+{
+  const W = 0.21, H = 0.42, D = 0.022;
+  const body = new THREE.Mesh(new RoundedBoxGeometry(W, H, D, 6, 0.03),
+    new THREE.MeshStandardMaterial({ color: 0x2a2a2e, metalness: 0.7, roughness: 0.35 }));
+  body.castShadow = true;
+  phone.add(body);
+  const screenTex = new THREE.TextureLoader().load('models/darkstore_screen.jpg');
+  screenTex.colorSpace = THREE.SRGBColorSpace; screenTex.anisotropy = 8;
+  // The texture is the home screen stacked above the cart screen (1260 + 1199 px); the screen shows a
+  // 1200 px-tall window of it, scrolled over time.
+  screenTex.repeat.set(1, 1200 / 2459);
+  screenTex.offset.y = 1 - 1200 / 2459;
+  phone.userData.screenTex = screenTex;
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.92, W * 0.92 * 1200 / 610),
+    new THREE.MeshBasicMaterial({ map: screenTex, toneMapped: false }));
+  screen.position.z = D / 2 + 0.0005;
+  phone.add(screen);
+  const island = new THREE.Mesh(new THREE.CapsuleGeometry(0.009, 0.035, 4, 12), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  island.rotation.z = Math.PI / 2; island.position.set(0, H * 0.44, D / 2 + 0.001);
+  phone.add(island);
+}
+phone.visible = false;
+scene.add(camera);
+camera.add(phone);
+
+// The cat and the ball share one floor: the bottom edge of the page, in camera space (the camera only translates).
+// Positions are (x, depth-from-camera); depth changes only their size. The bust is a keep-out ellipse on that floor.
+const FLOOR_TAN = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+const floorAt = (depth) => -FLOOR_TAN * depth * 0.985;
+const halfWidthAt = (depth) => FLOOR_TAN * camera.aspect * depth;
+const KEEP_OUT = { rx: 0.78, rz: 0.85 };
+// > 1 outside the ellipse around the bust, < 1 inside.
+const keepOutD = (x, depth) => Math.hypot(x / KEEP_OUT.rx, (depth - cur.dist) / KEEP_OUT.rz);
+function pushOutOfBust(p, pad = 0) {
+  const rx = KEEP_OUT.rx + pad, rz = KEEP_OUT.rz + pad;
+  const dz = p.depth - cur.dist, d = Math.hypot(p.x / rx, dz / rz);
+  if (d >= 1) return null;
+  const k = d < 1e-4 ? 1 : 1 / d;
+  p.x = (d < 1e-4 ? rx : p.x * k); p.depth = cur.dist + (d < 1e-4 ? 0 : dz * k);
+  // Outward normal of the ellipse at the pushed-out point, in (x, depth).
+  const nx = p.x / (rx * rx), nz = (p.depth - cur.dist) / (rz * rz), nl = Math.hypot(nx, nz);
+  return { nx: nx / nl, nz: nz / nl };
+}
+const ball = buildBall(); ball.visible = false; scene.add(camera); camera.add(ball);
+const BALL_CHAPTER = 10;
+// Ball physics on the shared floor: gravity, the page's bottom edge as the ground, the side edges of the view,
+// the backdrop wall and the bust (keep-out ellipse). A click kicks it in a random direction into the scene.
+const BALL = { r: 0.075, g: -5.5, floorBounce: 0.55, wallBounce: 0.45, sideBounce: 0.6, roll: 0.45, air: 0.15 };
+const ballP = { x: 0.9, y: 0, depth: 2.4 }, ballVel = new THREE.Vector3();
+let ballDropped = false, ballHover = false;
+const ballRay = new THREE.Raycaster(), ballNdc = new THREE.Vector2();
+addEventListener('click', (e) => {
+  if (!ball.visible || e.target.closest('a')) return;
+  ballNdc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ballRay.setFromCamera(ballNdc, camera);
+  if (!ballRay.intersectObject(ball).length) return;
+  const ang = THREE.MathUtils.randFloat(-0.9, 0.9);
+  const power = THREE.MathUtils.randFloat(2.2, 3.4);
+  // (vx, vy, vDepth): mostly away from the viewer, angled left or right at random.
+  ballVel.set(Math.sin(ang) * power, THREE.MathUtils.randFloat(1.3, 2.2), Math.cos(ang) * power);
+});
+addEventListener('pointermove', (e) => {
+  if (!ball.visible) return;
+  ballNdc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ballRay.setFromCamera(ballNdc, camera);
+  const over = ballRay.intersectObject(ball).length > 0;
+  if (over !== ballHover) { ballHover = over; document.body.style.cursor = over ? 'pointer' : ''; }
+});
+
+
+// BizTrip chapter: extra planes join the orbit, and boarding passes / a hotel key card float around the head.
+// One pass flips from a red "fare expired" stamp to a green "confirmed" one while it is on screen.
+const BIZ_CHAPTER = 9;
+const trafficPlanes = [
+  { rx: 0.8, rz: 0.7, cy: 0.1, tilt: -0.3, speed: -0.5, phase: 1.2 },
+  { rx: 1.1, rz: 0.9, cy: 0.55, tilt: 0.12, speed: 0.45, phase: 3.4 },
+  { rx: 0.9, rz: 0.75, cy: -0.25, tilt: 0.35, speed: 0.6, phase: 5.0 },
+].map((o) => { const g = buildPlane(); g.visible = false; scene.add(g); return { ...o, g }; });
+
+function passCanvas({ from, to, time, seat, stamp }) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 220;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fbf8f1'; g.beginPath(); g.roundRect(0, 0, 512, 220, 18); g.fill();
+  g.fillStyle = '#2f5bd3'; g.fillRect(0, 0, 512, 44);
+  g.fillStyle = '#fff'; g.font = '700 22px "JetBrains Mono", monospace'; g.fillText('BOARDING PASS', 22, 30);
+  g.textAlign = 'right'; g.fillText('BIZTRIP', 490, 30); g.textAlign = 'left';
+  g.fillStyle = '#1d2433'; g.font = '700 64px "JetBrains Mono", monospace';
+  g.fillText(from, 22, 122); g.fillText(to, 300, 122);
+  g.font = '400 34px "JetBrains Mono", monospace'; g.fillText('✈', 200, 116);
+  g.fillStyle = '#5b6273'; g.font = '500 20px "JetBrains Mono", monospace';
+  g.fillText(`DEP ${time}   SEAT ${seat}`, 22, 170);
+  g.setLineDash([8, 8]); g.strokeStyle = '#c9c3b5'; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(420, 52); g.lineTo(420, 210); g.stroke(); g.setLineDash([]);
+  for (let i = 0; i < 18; i++) { g.fillStyle = '#1d2433'; g.fillRect(436 + (i % 6) * 10, 70 + Math.floor(i / 6) * 40, 5 + (i * 7) % 4, 32); }
+  if (stamp) {
+    g.save(); g.translate(250, 150); g.rotate(-0.18);
+    g.strokeStyle = g.fillStyle = stamp === 'ok' ? '#2e9b52' : '#d23b2e'; g.lineWidth = 6;
+    g.strokeRect(-120, -34, 240, 60);
+    g.font = '800 30px "JetBrains Mono", monospace'; g.textAlign = 'center';
+    g.fillText(stamp === 'ok' ? '✓ CONFIRMED' : 'FARE EXPIRED', 0, 7);
+    g.restore();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+function keyCardCanvas() {
+  const c = document.createElement('canvas'); c.width = 320; c.height = 200;
+  const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 320, 200); gr.addColorStop(0, '#1d2433'); gr.addColorStop(1, '#3b4a6b');
+  g.fillStyle = gr; g.beginPath(); g.roundRect(0, 0, 320, 200, 18); g.fill();
+  g.fillStyle = '#d9b45a'; g.fillRect(28, 70, 56, 42);
+  g.fillStyle = '#fff'; g.font = '700 26px "JetBrains Mono", monospace'; g.fillText('ROOM 1204', 110, 100);
+  g.font = '400 16px "JetBrains Mono", monospace'; g.fillText('HOTEL · KEY CARD', 110, 130);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const cardMat = (map) => new THREE.MeshStandardMaterial({ map, roughness: 0.7, side: THREE.DoubleSide, transparent: true });
+const passGeo = new THREE.PlaneGeometry(0.34, 0.146), keyGeo = new THREE.PlaneGeometry(0.2, 0.125);
+const flipBad = passCanvas({ from: 'SFO', to: 'JFK', time: '07:40', seat: '14C', stamp: 'bad' });
+const flipOk = passCanvas({ from: 'SFO', to: 'JFK', time: '07:40', seat: '14C', stamp: 'ok' });
+const CARDS = [
+  { mesh: new THREE.Mesh(passGeo, cardMat(flipBad)), at: [-0.6, 0.12, 0.45], rot: 0.2, flip: true },
+  { mesh: new THREE.Mesh(passGeo, cardMat(passCanvas({ from: 'BOS', to: 'LHR', time: '21:15', seat: '3A' }))), at: [0.62, 0.32, 0.35], rot: -0.25 },
+  { mesh: new THREE.Mesh(passGeo, cardMat(passCanvas({ from: 'BOM', to: 'SYR', time: '02:05', seat: '31F' }))), at: [0.66, -0.12, 0.3], rot: 0.3 },
+  { mesh: new THREE.Mesh(keyGeo, cardMat(keyCardCanvas())), at: [-0.52, 0.5, 0.3], rot: -0.4 },
+];
+CARDS.forEach((c, i) => {
+  c.mesh.castShadow = true; c.mesh.visible = false; scene.add(c.mesh);
+  c.from = new THREE.Vector3(i % 2 ? 1.6 : -1.6, -1.1, 0.8);
+  c.to = new THREE.Vector3(...c.at);
+});
+let bizStart = null;
+Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.material.transparent) o.castShadow = true; }));
+{
+  // A cat that wanders the floor of the scene at random: toward the viewer, behind the bust, and off-screen.
+  // It lives in camera space (the camera only ever translates), so its floor stays put while the scroll camera moves;
+  // depth is measured relative to the head so "behind me" means behind the bust in every chapter.
+  const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('models/cats/somali_cat_animated_ver_1.2.glb');
+  const model = gltf.scene, cat = new THREE.Group();
+  const mixer = new THREE.AnimationMixer(model);
+  const clip = (n) => mixer.clipAction(gltf.animations.find((a) => a.name === n));
+  const A = { idle: clip('Idle'), walk: clip('WalkClean'), sitDown: clip('SitDown'), sit: clip('SittingIdle'), standUp: clip('StandUp') };
+  [A.sitDown, A.standUp].forEach((a) => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; });
+  // The download ships with a display plinth (the only un-skinned mesh); the cat itself is all skinned meshes.
+  const plinths = []; model.traverse((o) => { if (o.isMesh && !o.isSkinnedMesh) plinths.push(o); });
+  plinths.forEach((o) => o.removeFromParent());
+  // Fur recoloured through a luminance → colour lookup built from the reference ginger cat (grade/catlut.py),
+  // so the model keeps its own stripes and shading but takes on that palette.
+  const furLut = await new THREE.TextureLoader().loadAsync('models/cats/fur_lut.png');
+  furLut.colorSpace = THREE.SRGBColorSpace;
+  furLut.minFilter = furLut.magFilter = THREE.LinearFilter;
+  model.traverse((o) => {
+    if (!o.isMesh || o.material.name !== 'SomaliTexture') return;
+    o.material.onBeforeCompile = (sh) => {
+      sh.uniforms.uFurLut = { value: furLut };
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform sampler2D uFurLut;')
+        .replace('#include <map_fragment>', `#include <map_fragment>
+          {
+            vec3 srgb = pow(max(diffuseColor.rgb, 0.0), vec3(1.0 / 2.2));
+            float l = dot(srgb, vec3(0.299, 0.587, 0.114));
+            diffuseColor.rgb = texture2D(uFurLut, vec2(clamp(l, 0.002, 0.998), 0.5)).rgb;
+          }`);
+    };
+  });
+  const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3());
+  const CAT_H = 0.22, k = CAT_H / size.y;
+  model.scale.setScalar(k);
+  model.position.set(-box.getCenter(new THREE.Vector3()).x * k, -box.min.y * k, -box.getCenter(new THREE.Vector3()).z * k);
+  model.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  cat.add(model);
+  scene.add(camera);
+  camera.add(cat);
+  const bodyLen = Math.max(size.x, size.z) * k;
+
+  let current = A.walk; current.play();
+  function go(next, fade = 0.3) {
+    if (current === next) return;
+    next.reset().play(); current.crossFadeTo(next, fade, false); current = next;
+  }
+
+  const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  // Walkable band as distance from the camera. The floor is the bottom edge of the page at every depth, so
+  // walking "into" the page only shrinks the cat and walking out grows it.
+  const NEAR = 1.8, FAR = 5.0;
+  const pos = { x: 0, off: 0 }, target = { x: 0, off: 0 };
+  let heading = -Math.PI / 2, state = 'walk', stateT = 0, waitFor = 0, arrived = false;
+  const depthOf = (off) => off;
+  const halfWAt = (off) => tanH * camera.aspect * depthOf(off);
+  const floorY = (d) => -tanH * d * 0.985;
+
+  function pickTarget() {
+    if (Math.random() < 0.18) {
+      // Stroll off one edge; it comes back after a pause.
+      target.off = THREE.MathUtils.randFloat(NEAR, FAR);
+      target.x = (Math.random() < 0.5 ? -1 : 1) * (halfWAt(target.off) + bodyLen);
+    } else {
+      do {
+        target.off = THREE.MathUtils.randFloat(NEAR, FAR);
+        target.x = THREE.MathUtils.randFloat(-0.85, 0.85) * halfWAt(target.off);
+      } while (keepOutD(target.x, target.off) < 1.25);
+    }
+  }
+  const offscreen = () => Math.abs(pos.x) > halfWAt(pos.off) + bodyLen * 0.5;
+
+  const say = document.getElementById('cat-say');
+  const tmpS = new THREE.Vector3();
+  const toScreen = (v) => { v.project(camera); return { x: (v.x * 0.5 + 0.5) * innerWidth, y: (-v.y * 0.5 + 0.5) * innerHeight }; };
+  function hit(e) {
+    if (!arrived || !cat.visible) return false;
+    const c = toScreen(cat.getWorldPosition(tmpS).add(tmpA.set(0, 0, 0)).setY(cat.getWorldPosition(tmpS).y + CAT_H * 0.5));
+    const r = CAT_H / (depthOf(pos.off) * 2 * tanH) * innerHeight * 0.75;
+    return Math.hypot(e.clientX - c.x, e.clientY - c.y) < r;
+  }
+  addEventListener('click', (e) => {
+    if (!hit(e)) return;
+    const top = toScreen(cat.getWorldPosition(tmpS).setY(cat.getWorldPosition(tmpS).y + CAT_H * 1.3));
+    say.style.left = top.x + 'px'; say.style.bottom = (innerHeight - top.y) + 'px';
+    say.classList.add('on');
+    setTimeout(() => say.classList.remove('on'), 1400);
+    if (state === 'walk') { state = 'sitDown'; stateT = 0; go(A.sitDown); }
+  });
+  let catHover = false;
+  addEventListener('pointermove', (e) => {
+    const near = hit(e);
+    if (near !== catHover) { catHover = near; document.body.style.cursor = near ? 'pointer' : ''; }
+  });
+
+  const WALK_SPEED = bodyLen * 0.5;
+  let nextRest = 7 + Math.random() * 6;
+  cat.visible = false;
+  catTick = (dt) => {
+    if (!arrived) {
+      if (chapterPos() < SHOTS.length - 1.4) return;
+      arrived = true; cat.visible = true;
+      pos.off = 2.6; pos.x = halfWAt(pos.off) + bodyLen; heading = Math.PI / 2;
+      target.off = 2.2; target.x = 0.2 * halfWAt(2.2);
+    }
+    stateT += dt;
+    if (state === 'away') {
+      // Off-screen: wait, then re-enter from a random side.
+      if (stateT > waitFor) {
+        state = 'walk'; stateT = 0; cat.visible = true;
+        pos.off = THREE.MathUtils.randFloat(NEAR, FAR);
+        pos.x = (Math.random() < 0.5 ? -1 : 1) * (halfWAt(pos.off) + bodyLen);
+        target.off = THREE.MathUtils.randFloat(NEAR, FAR);
+        target.x = THREE.MathUtils.randFloat(-0.6, 0.6) * halfWAt(target.off);
+        go(A.walk, 0.1);
+      }
+    } else if (state === 'walk') {
+      const dx = target.x - pos.x, dz = -(target.off - pos.off);
+      const dist = Math.hypot(dx, dz);
+      if (dist < bodyLen * 0.3) {
+        if (offscreen()) { state = 'away'; stateT = 0; waitFor = 3 + Math.random() * 5; cat.visible = false; }
+        else pickTarget();
+      } else {
+        // Steer around the bust: blend in a push away from it that grows as the cat gets close.
+        let sx = dx / dist, sz = dz / dist;
+        const kd = keepOutD(pos.x, pos.off);
+        if (kd < 1.6) {
+          const ax = pos.x / KEEP_OUT.rx, az = (pos.off - cur.dist) / KEEP_OUT.rz, al = Math.hypot(ax, az) || 1;
+          const w = (1.6 - kd) * 2.2;
+          // Tangential slide (keeps it circling round rather than stopping) plus a radial push.
+          const tx = -az / al, tz = ax / al, side = Math.sign(tx * sx - tz * sz) || 1;
+          sx += (ax / al) * w + tx * w * side; sz += -(az / al) * w - tz * w * side;
+        }
+        const want = Math.atan2(-sx, -sz);
+        let d = want - heading; d = Math.atan2(Math.sin(d), Math.cos(d));
+        heading += d * Math.min(1, dt * 2.5);
+        // Slow down while turning sharply so it pivots instead of drifting sideways.
+        const speed = WALK_SPEED * Math.max(0.25, Math.cos(d));
+        pos.x += -Math.sin(heading) * speed * dt;
+        pos.off -= -Math.cos(heading) * speed * dt;
+        pos.off = THREE.MathUtils.clamp(pos.off, NEAR - 0.1, FAR + 0.1);
+        const pp = { x: pos.x, depth: pos.off };
+        if (pushOutOfBust(pp, 0.05)) { pos.x = pp.x; pos.off = pp.depth; }
+      }
+      nextRest -= dt;
+      if (nextRest < 0 && !offscreen()) { state = 'sitDown'; stateT = 0; go(A.sitDown); }
+    } else if (state === 'sitDown' && stateT > A.sitDown.getClip().duration) {
+      state = 'sit'; stateT = 0; go(A.sit, 0.2);
+    } else if (state === 'sit' && stateT > 4) {
+      state = 'standUp'; stateT = 0; go(A.standUp, 0.2);
+    } else if (state === 'standUp' && stateT > A.standUp.getClip().duration) {
+      state = 'walk'; stateT = 0; nextRest = 9 + Math.random() * 8; pickTarget(); go(A.walk, 0.3);
+    }
+    cat.position.set(pos.x, floorY(pos.off), -pos.off);
+    cat.rotation.y = heading;
+    mixer.update(dt);
+  };
+}
+document.getElementById('loading').style.opacity = 0;
+setTimeout(() => document.getElementById('loading').remove(), 700);
+
+// One entry per <section class="chapter">. `yaw` is the sticker angle to present to the camera (the head turns by
+// -yaw); values keep decreasing so the head always turns the same way round, through the back of the head.
+// The plane shot frames the hair so the neck stickers stay hidden until the final chapter.
+// `y` is the height the camera frames and `dist` how close it gets.
+const SHOTS = [
+  { yaw: 0, y: 0.15, dist: 4.6 },
+  { yaw: -22, y: 0.14, dist: 2.0 },
+  { yaw: -70, y: -0.30, dist: 2.1 },
+  { yaw: -56, y: -0.04, dist: 1.9 },
+  { yaw: -40, y: -0.18, dist: 1.9 },
+  { yaw: -180, y: 0.45, dist: 2.8 },
+  { yaw: -304, y: -0.02, dist: 1.9 },
+  { yaw: -290, y: -0.30, dist: 2.0 },
+  { yaw: -252, y: -0.16, dist: 2.1 },
+  { yaw: -360, y: 0.02, dist: 3.0 },
+  { yaw: -565, y: -0.22, dist: 2.6 },
+];
+// The face is swapped while the back of the head is to the camera, so the change is never seen happening.
+const SWAP_YAW = -180;
+function showFaces(yaw) {
+  heads.smug.root.visible = yaw > SWAP_YAW;
+  heads.grimace.root.visible = yaw <= SWAP_YAW;
+}
+
+const sections = [...document.querySelectorAll('.chapter')];
+let narrow = false;
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  composer?.setSize(innerWidth, innerHeight);
+  narrow = innerWidth <= 760;
+}
+addEventListener('resize', resize); resize();
+
+const mouse = new THREE.Vector2();
+addEventListener('pointermove', (e) => {
+  mouse.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight * 2 - 1));
+});
+
+const hint = document.getElementById('hint');
+function chapterPos() {
+  return THREE.MathUtils.clamp(scrollY / innerHeight, 0, SHOTS.length - 1);
+}
+// Hold on each shot while its text is centred, then travel to the next.
+function shotAt(p) {
+  const i = Math.min(Math.floor(p), SHOTS.length - 2);
+  const t = THREE.MathUtils.smoothstep(p - i, 0.3, 1.0);
+  const a = SHOTS[i], b = SHOTS[i + 1];
+  return { yaw: THREE.MathUtils.lerp(a.yaw, b.yaw, t), y: THREE.MathUtils.lerp(a.y, b.y, t),
+    dist: THREE.MathUtils.lerp(a.dist, b.dist, t) };
+}
+
+let cur = shotAt(chapterPos());
+addEventListener('scroll', () => {
+  hint.style.opacity = scrollY > 40 ? 0 : 1;
+  const active = Math.round(chapterPos());
+  sections.forEach((s, i) => s.classList.toggle('on', i === active));
+  if (active === sections.length - 1) document.getElementById('socials').classList.add('on');
+});
+sections[0].classList.add('on');
+
+const EYE_GAIN = new THREE.Vector2(1.8, 2.6);
+const eyeTarget = (v) => Math.sign(v) * Math.sqrt(Math.min(Math.abs(v), 1));
+
+const tmpF = new THREE.Vector3(), tmpC = new THREE.Vector3(), tmpW = new THREE.Vector3();
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const k = Math.min(1, dt * 5);
+  const target = shotAt(chapterPos());
+  cur.yaw += (target.yaw - cur.yaw) * k;
+  cur.y += (target.y - cur.y) * k;
+  cur.dist += (target.dist - cur.dist) * k;
+
+  showFaces(cur.yaw);
+
+  const yawRad = THREE.MathUtils.degToRad(-cur.yaw);
+  pivot.rotation.y += (yawRad + mouse.x * 0.22 - pivot.rotation.y) * k;
+  pivot.rotation.x += (-mouse.y * 0.1 - pivot.rotation.x) * k;
+  look.value.x += (eyeTarget(mouse.x) * EYE_GAIN.x - look.value.x) * Math.min(1, dt * 8);
+  look.value.y += (eyeTarget(mouse.y) * EYE_GAIN.y - look.value.y) * Math.min(1, dt * 8);
+
+  // Head stays centred; narrow screens lift the framing so the bottom text sits under the chin.
+  const lift = narrow ? -cur.dist * 0.12 : -cur.dist * 0.04;
+  camera.position.set(0, cur.y + lift, cur.dist);
+  camera.lookAt(0, cur.y + lift, 0);
+
+  scene.updateMatrixWorld();
+  Object.values(heads).forEach((h) => {
+    h.invRoot.value.copy(h.root.matrixWorld).invert();
+    const fwd = tmpF.set(0, 0, 1).transformDirection(h.root.matrixWorld);
+    const toCam = tmpC.copy(camera.position).sub(h.root.getWorldPosition(tmpW)).normalize();
+    h.front.value = THREE.MathUtils.smoothstep(fwd.dot(toCam), 0.5, 0.82);
+  });
+  // Focus on the near surface of the head so ears, hair and the backdrop fall off, like a macro lens.
+  bokeh.uniforms.focus.value = Math.max(0.5, cur.dist - 0.45);
+  if (takeoffAt === null && chapterPos() > PLANE_CHAPTER - 0.4) {
+    takeoffAt = clock.elapsedTime;
+    plane.visible = true;
+  }
+  if (takeoffAt !== null) {
+    const a = clock.elapsedTime * ORBIT.speed;
+    const t = Math.min(1, (clock.elapsedTime - takeoffAt) / TAKEOFF.duration);
+    const e = 1 - (1 - t) ** 3;
+    orbitPos(a, tmpB);
+    plane.position.lerpVectors(TAKEOFF.from, tmpB, e);
+    plane.lookAt(t < 1 ? tmpA.copy(TAKEOFF.from).lerp(tmpB, Math.min(1, e + 0.05)) : orbitPos(a + 0.05, tmpA));
+    plane.rotateY(-Math.PI / 2);
+    plane.rotateX(-0.35);
+    plane.scale.setScalar(0.4 + 0.6 * e);
+  }
+  const pr = chapterPos();
+  const molW = THREE.MathUtils.smoothstep(pr, RESEARCH_CHAPTER - 0.6, RESEARCH_CHAPTER - 0.1)
+    - THREE.MathUtils.smoothstep(pr, RESEARCH_CHAPTER + 0.35, RESEARCH_CHAPTER + 0.8);
+  MOLECULES.forEach((m, i) => {
+    m.g.visible = molW > 0.01;
+    if (!m.g.visible) return;
+    const tt = clock.elapsedTime;
+    m.g.position.copy(m.at).add(tmpA.set(Math.sin(tt * 0.6 + i) * 0.03, Math.sin(tt * 0.8 + i * 2) * 0.04, 0));
+    m.g.rotation.set(tt * m.spin * 0.5 + i, tt * m.spin + i, 0);
+    // Slight overshoot as each one pops in, staggered so they don't appear in lockstep.
+    const k = THREE.MathUtils.clamp(molW * 1.4 - i * 0.1, 0, 1);
+    m.g.scale.setScalar(m.size * (k + Math.sin(k * Math.PI) * 0.25));
+  });
+  {
+    if (!ballDropped && chapterPos() > BALL_CHAPTER - 0.4) {
+      ballDropped = true; ball.visible = true;
+      ballP.x = -halfWidthAt(2.4) * 0.6; ballP.depth = 2.4; ballP.y = floorAt(2.4) + 0.9;
+      ballVel.set(0.1, 0, 0);
+    }
+    if (ballDropped) {
+      const STEPS = 6, h = dt / STEPS, wallDepth = cur.dist + 1.4 - BALL.r;
+      for (let i = 0; i < STEPS; i++) {
+        ballVel.y += BALL.g * h;
+        ballVel.multiplyScalar(1 - BALL.air * h);
+        // Coming back toward the viewer it eases off near the front instead of hitting an invisible barrier.
+        if (ballVel.z < 0 && ballP.depth < 2.4) ballVel.z *= 1 - (2.4 - ballP.depth) * 3 * h;
+        ballP.x += ballVel.x * h; ballP.y += ballVel.y * h; ballP.depth += ballVel.z * h;
+        const ground = floorAt(ballP.depth) + BALL.r;
+        if (ballP.y < ground) {
+          ballP.y = ground;
+          ballVel.y = Math.abs(ballVel.y) < 0.25 ? 0 : -ballVel.y * BALL.floorBounce;
+          ballVel.x *= 0.94; ballVel.z *= 0.94;
+        }
+        if (ballP.y <= ground + 1e-4 && ballVel.y === 0) {
+          // Rolling friction: a constant deceleration, so it coasts and then comes to rest wherever it is.
+          const sp = Math.hypot(ballVel.x, ballVel.z), dec = BALL.roll * h;
+          if (sp <= dec) { ballVel.x = 0; ballVel.z = 0; } else { ballVel.x *= 1 - dec / sp; ballVel.z *= 1 - dec / sp; }
+        }
+        if (ballP.depth > wallDepth) {
+          ballP.depth = wallDepth; ballVel.z = -Math.abs(ballVel.z) * BALL.wallBounce;
+          // A real wall is never perfectly flat; a little sideways kick varies where it comes back.
+          ballVel.x += THREE.MathUtils.randFloatSpread(0.8);
+        }
+        if (ballP.depth < 1.6) { ballP.depth = 1.6; ballVel.z = 0; }
+        const edge = halfWidthAt(ballP.depth) - BALL.r;
+        if (Math.abs(ballP.x) > edge) { ballP.x = Math.sign(ballP.x) * edge; ballVel.x = -ballVel.x * BALL.sideBounce; }
+        const n = pushOutOfBust(ballP, BALL.r);
+        if (n) {
+          const vn = ballVel.x * n.nx + ballVel.z * n.nz;
+          if (vn < 0) { ballVel.x -= 1.7 * vn * n.nx; ballVel.z -= 1.7 * vn * n.nz; }
+        }
+      }
+      ball.position.set(ballP.x, ballP.y, -ballP.depth);
+      ball.rotation.x -= ballVel.z / BALL.r * dt;
+      ball.rotation.z -= ballVel.x / BALL.r * dt;
+    }
+  }
+  {
+    const pc = chapterPos();
+    const w = THREE.MathUtils.smoothstep(pc, DARKSTORE_CHAPTER - 0.55, DARKSTORE_CHAPTER - 0.1)
+      - THREE.MathUtils.smoothstep(pc, DARKSTORE_CHAPTER + 0.35, DARKSTORE_CHAPTER + 0.8);
+    const wasVisible = phone.visible;
+    phone.visible = w > 0.01;
+    // The screen loop restarts whenever the phone comes into view, so it always opens on the home screen.
+    if (phone.visible && !wasVisible) phone.userData.shownAt = clock.elapsedTime;
+    if (phone.visible) {
+      const t = clock.elapsedTime, e = 1 - (1 - w) ** 3;
+      phone.position.set(halfWidthAt(1.4) * 0.52, -0.02 + Math.sin(t * 0.9) * 0.012 - (1 - e) * 0.5, -1.4);
+      phone.rotation.set(-0.08 + mouse.y * 0.1, -0.35 + Math.sin(t * 0.5) * 0.12 + mouse.x * 0.2, 0.06);
+      phone.scale.setScalar(0.6 + 0.4 * e);
+      const ph = (t - phone.userData.shownAt) % 8, top = 1 - 1200 / 2459;
+      // 1.5s on the home screen, 2s scroll down, 3s on the cart, then a smooth scroll back up.
+      const k = ph < 1.5 ? 0 : ph < 3.5 ? THREE.MathUtils.smootherstep(ph, 1.5, 3.5) : ph < 6.5 ? 1 : 1 - THREE.MathUtils.smootherstep(ph, 6.5, 8);
+      phone.userData.screenTex.offset.y = top * (1 - k);
+    }
+  }
+  const pb = chapterPos();
+  const bizW = THREE.MathUtils.smoothstep(pb, BIZ_CHAPTER - 0.55, BIZ_CHAPTER - 0.1)
+    - THREE.MathUtils.smoothstep(pb, BIZ_CHAPTER + 0.35, BIZ_CHAPTER + 0.8);
+  if (bizW > 0.5 && bizStart === null) bizStart = clock.elapsedTime;
+  if (bizW < 0.01) bizStart = null;
+  const tb = clock.elapsedTime;
+  trafficPlanes.forEach((p) => {
+    p.g.visible = bizW > 0.01;
+    if (!p.g.visible) return;
+    const at = (a, out) => out.set(Math.cos(a) * p.rx, p.cy + Math.sin(a) * p.rz * p.tilt, Math.sin(a) * p.rz);
+    const a = tb * p.speed + p.phase;
+    at(a, p.g.position);
+    p.g.lookAt(at(a + 0.05 * Math.sign(p.speed), tmpA));
+    p.g.rotateY(-Math.PI / 2);
+    p.g.scale.setScalar(0.8 * bizW);
+  });
+  CARDS.forEach((c, i) => {
+    c.mesh.visible = bizW > 0.01;
+    if (!c.mesh.visible) return;
+    const k = THREE.MathUtils.clamp(bizW * 1.3 - i * 0.08, 0, 1);
+    const e = 1 - (1 - k) ** 3;
+    c.mesh.position.lerpVectors(c.from, c.to, e).add(tmpA.set(0, Math.sin(tb * 0.9 + i) * 0.02, 0));
+    c.mesh.rotation.set(Math.sin(tb * 0.7 + i) * 0.15, (1 - e) * 2.5 + Math.sin(tb * 0.5 + i) * 0.2, c.rot);
+    // The stamped pass turns over 1.8s after landing and comes back confirmed.
+    if (c.flip && bizStart !== null) {
+      const f = THREE.MathUtils.clamp((tb - bizStart - 1.8) / 0.6, 0, 1);
+      c.mesh.rotation.y += Math.PI * 2 * f;
+      const ok = f > 0.5;
+      c.mesh.material.map = ok ? flipOk : flipBad;
+    }
+  });
+  specks.material.map.offset.set(clock.elapsedTime * 0.004, -clock.elapsedTime * 0.006);
+  catTick(dt);
+  composer.render(dt);
+});
+</script>
+</body>
+</html>
