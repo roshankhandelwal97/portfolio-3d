@@ -1120,7 +1120,7 @@ const laptopScreens = [];
   });
   paintMood();
   const box = new THREE.Box3().setFromObject(mb), size = box.getSize(new THREE.Vector3());
-  const k = 0.34 / size.x;
+  const k = 0.27 / size.x;
   mb.scale.setScalar(k);
   mb.position.copy(box.getCenter(new THREE.Vector3())).multiplyScalar(-k);
   laptop.add(mb);
@@ -1267,8 +1267,8 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
     if (!arrived) {
       if (chapterPos() < SHOTS.length - 1.4) return;
       arrived = true; cat.visible = true;
-      // Starts just left of the scoreboard card, in front of the bust's keep-out zone, and walks left from there.
-      pos.off = Math.max(NEAR, cur.dist - KEEP_OUT.rz - 0.1);
+      // Starts at the front of the frame just left of the scoreboard card, and walks left from there.
+      pos.off = NEAR;
       const card = document.getElementById('score').getBoundingClientRect();
       const px = card.width ? card.left - 110 : innerWidth * 0.75;
       pos.x = (px / innerWidth * 2 - 1) * halfWAt(pos.off) - bodyLen * 0.5; heading = Math.PI / 2;
@@ -1280,7 +1280,8 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
       // Off-screen: wait, then re-enter from a random side.
       if (stateT > waitFor) {
         state = 'walk'; stateT = 0; cat.visible = true;
-        pos.off = THREE.MathUtils.randFloat(NEAR, FAR);
+        // Always re-enters at the front of the frame, then wanders.
+        pos.off = NEAR;
         pos.x = (Math.random() < 0.5 ? -1 : 1) * (halfWAt(pos.off) + bodyLen);
         target.off = THREE.MathUtils.randFloat(NEAR, FAR);
         target.x = THREE.MathUtils.randFloat(-0.6, 0.6) * halfWAt(target.off);
