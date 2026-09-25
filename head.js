@@ -58,7 +58,8 @@ function addEyes(root, atlas, eyes, grade) {
               if (all(greaterThan(iq, vec2(0.0))) && all(lessThan(iq, vec2(1.0))))
                 ir = texture(uEyeAtlas, mix(uIrisRect[i].xy, uIrisRect[i].zw, iq));
               float shade = mix(0.7, 1.0, smoothstep(0.0, 0.9, sc.a));
-              vec3 col = mix(sc.rgb, ir.rgb * shade, ir.a);
+              // Whites toned down to a warm off-white and irises deepened, so the eyes don't read as bright CG.
+              vec3 col = mix(sc.rgb * vec3(0.84, 0.8, 0.76), ir.rgb * shade * 0.62, ir.a);
               // The overlay is projected along the model's z axis and smears once the head turns well away from the
               // camera; uFront fades it out so the sculpt's own painted eyes show in profile.
               diffuseColor.rgb = mix(diffuseColor.rgb, col, sc.a * uFront);
