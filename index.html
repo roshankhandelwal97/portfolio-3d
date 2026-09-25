@@ -39,20 +39,25 @@
   main { position: relative; z-index: 2; }
   .chapter { height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 40px 9vh; }
   .chapter > * { max-width: 34vw; }
-  .chapter h1, .chapter h2, .chapter .lede { text-shadow: 0 1px 18px rgba(180,186,155,.9); }
+  .chapter h1, .chapter h2, .chapter .lede { text-shadow: 0 1px 18px color-mix(in srgb, var(--paper) 90%, transparent); }
   .label { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 14px; }
   h1, h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; line-height: .95; letter-spacing: -.01em; }
   h1 { font-size: clamp(56px, 9vw, 150px); }
   h2 { font-size: clamp(38px, 5.2vw, 84px); }
   h2 em, h1 em { color: var(--accent); }
+  .lede code { font-family: inherit; color: var(--ink); }
   .lede { max-width: 42ch; font-size: 13px; line-height: 1.7; color: var(--ink-soft); margin-top: 20px; }
   .chapter .lede, .chapter h1, .chapter h2, .chapter .label { opacity: 0; transform: translateY(18px);
     transition: opacity .6s ease, transform .6s ease; }
   .chapter.on .lede, .chapter.on h1, .chapter.on h2, .chapter.on .label { opacity: 1; transform: none; }
   .chapter.on .lede { transition-delay: .12s; }
   a { color: var(--ink); }
-  .score { display: inline-flex; flex-direction: column; gap: 4px; margin-top: 20px; padding: 10px 14px;
+  /* Pinned bottom-right, shown only on the last chapter. */
+  .score { position: fixed; right: 20px; bottom: 30px; z-index: 6; opacity: 0; transform: translateY(8px);
+    transition: opacity .5s, transform .5s; pointer-events: none;
+    display: inline-flex; flex-direction: column; gap: 4px; padding: 10px 14px;
     background: #1d2433; color: #f4f1ea; border-radius: 10px; width: max-content; }
+  .score.on { opacity: 1; transform: none; }
   .score-label { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #edbb3a; }
   .score-line { font-size: 15px; letter-spacing: .04em; }
   .score-line em { font-style: normal; color: #edbb3a; padding: 0 6px; font-weight: 600; }
@@ -63,12 +68,44 @@
 
   .scroll-hint { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); font-size: 10px;
     letter-spacing: .3em; color: var(--ink-soft); z-index: 3; transition: opacity .4s; }
-  #cat-say { position: fixed; bottom: 150px; z-index: 7; font-size: 12px; letter-spacing: .1em; color: var(--ink);
+  #cat-say { position: fixed; bottom: 150px; z-index: 7; font-size: 12px; letter-spacing: .1em; color: #1d2433;
     background: #f7f4ea; border-radius: 12px; padding: 4px 9px; opacity: 0; transform: translate(-50%, 6px) scale(.9);
     transition: opacity .2s, transform .2s; pointer-events: none; }
   #cat-say.on { opacity: 1; transform: translate(-50%, 0); }
+  /* Background colour picker: a stitched patch on the right edge that fans out a column of swatches. */
+  .mood { position: fixed; right: 16px; top: 50%; transform: translateY(-50%); z-index: 8;
+    display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .mood-toggle { width: 58px; height: 58px; padding: 0; border: 0; background: none; cursor: pointer;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,.2)); transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .mood-toggle img { width: 100%; height: 100%; display: block; }
+  .mood-toggle:hover { transform: rotate(-14deg) scale(1.08); }
+  .mood.open .mood-toggle { transform: rotate(200deg); }
+  .mood-list { display: flex; flex-direction: column; gap: 9px; }
+  /* Each swatch is a mini patch: the colour, the spool patch's own stitch texture blended over it, a cream
+     stitched rim, and a white die-cut edge. */
+  .mood-list button { position: relative; width: 30px; height: 30px; border-radius: 50%; padding: 0; cursor: pointer;
+    background-image: url(ui/fabric.png); background-size: 60px 15px; background-blend-mode: overlay;
+    border: 2.5px solid #efe6d2; outline: 1px dashed rgba(120,100,70,.45); outline-offset: -5px;
+    box-shadow: 0 0 0 3px #fbfaf6, 0 3px 7px rgba(0,0,0,.22);
+    opacity: 0; transform: translateY(14px) scale(.4); pointer-events: none;
+    transition: opacity .22s ease, transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .mood.open .mood-list button { opacity: 1; transform: rotate(var(--tilt, 0deg)); pointer-events: auto; }
+  .mood-list button.art { width: 38px; height: 38px; border: 0; outline: 0; background: var(--art) center / contain no-repeat;
+    box-shadow: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,.25)); }
+  .mood-list button.art.on { box-shadow: 0 0 0 2px var(--ink); border-radius: 50%; }
+  .mood-list button.on { box-shadow: 0 0 0 3px #fbfaf6, 0 0 0 5px var(--ink), 0 3px 7px rgba(0,0,0,.22); }
+  .mood-list button:hover, .mood-list button:focus-visible { transform: rotate(0deg) scale(1.2); }
+  .mood-list button.stamp { animation: stamp .35s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes stamp { 0% { transform: scale(1.35); } 60% { transform: scale(.9); } 100% { transform: scale(1); } }
+  .mood-list button span { position: absolute; right: 40px; top: 50%; transform: translate(6px, -50%); white-space: nowrap;
+    font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #1d2433; background: #f7f4ea;
+    padding: 4px 8px; border-radius: 10px; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; }
+  .mood-list button:hover span, .mood-list button:focus-visible span { opacity: 1; transform: translate(0, -50%); }
+  .mood-list .gap { height: 4px; }
+  @media (max-width: 760px) { .mood { right: 8px; top: auto; bottom: 90px; transform: none; } .mood-toggle { width: 46px; height: 46px; } }
   .credits { position: fixed; right: 12px; bottom: 6px; z-index: 7; font-size: 9px; color: var(--ink-soft); opacity: .7; }
   .credits a { color: inherit; }
+  .flash { position: fixed; inset: 0; z-index: 4; pointer-events: none; background: #f4f7ff; opacity: 0; mix-blend-mode: screen; }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); z-index: 10;
     font-size: 11px; letter-spacing: .3em; color: var(--ink-soft); transition: opacity .6s; }
 
@@ -100,67 +137,69 @@
   <section class="chapter">
     <div class="label">Hi, I'm</div>
     <h1>Roshan<br>Khandelwal</h1>
-    <p class="lede">Full-stack &amp; AI engineer. I build software that ships — right now, an AI agent that plans and books business travel.</p>
+    <p class="lede">With the power of AI, I help companies grow — scaling products from early R&amp;D to millions of requests a day. <code>(Humans + AI)</code> is the way forward.</p>
   </section>
   <section class="chapter">
     <div class="label">01 · Origin</div>
-    <h2>Made in <em>India.</em></h2>
-    <p class="lede">Where the story starts.</p>
+    <h2><em>Namaste.</em></h2>
+    <p class="lede">Made in India — a billion stories, a hundred languages, and chai that fixes everything. This is where mine starts.</p>
   </section>
   <section class="chapter">
-    <div class="label">02 · Mumbai</div>
-    <h2>Grew up in Mumbai.</h2>
-    <p class="lede">Local trains, vada pav, and a city that never waits for you.</p>
-  </section>
-  <section class="chapter">
-    <div class="label">03 · NMIMS · 2015–19</div>
+    <div class="label">02 · NMIMS · 2015–19</div>
     <h2>B.Tech, Computer Engineering.</h2>
     <p class="lede">Data structures, algorithms, AI &amp; ML, theory of computation — and the first things I shipped.</p>
   </section>
   <section class="chapter">
-    <div class="label">04 · Accenture · 2019–22</div>
+    <div class="label">03 · Accenture · 2019–22</div>
     <h2>Identity at scale.</h2>
     <p class="lede">Senior Software Developer. SSO and MFA for 50+ healthcare portals — Java Spring Boot, Akamai Identity Cloud, AWS Lambda and Redshift.</p>
   </section>
   <section class="chapter">
-    <div class="label">05 · 2022</div>
-    <h2>Then I got on a <em>plane.</em></h2>
-    <p class="lede">Mumbai → Syracuse, one-way.</p>
+    <div class="label">04 · 2022</div>
+    <h2>One-way <em>ticket.</em></h2>
+    <p class="lede">Mumbai → Syracuse, 2022. Traded monsoons for lake-effect snow.</p>
   </section>
   <section class="chapter">
-    <div class="label">06 · Syracuse University · 2022–24</div>
+    <div class="label">05 · Syracuse University · 2022–24</div>
     <h2>MS, Computer Engineering.</h2>
     <p class="lede">NLP, data mining, blockchain, internet security — and very long winters.</p>
   </section>
   <section class="chapter">
-    <div class="label">07 · Research · Prof. Atanu Acharya's lab</div>
+    <div class="label">06 · Research · Prof. Atanu Acharya's lab</div>
     <h2>Molecules, in 3D.</h2>
     <p class="lede">An ed-tech platform with 50+ interactive 3D molecular simulations, and ML pipelines predicting protein structure from molecular dynamics.</p>
   </section>
   <section class="chapter">
-    <div class="label">08 · Dark Store · 2025</div>
+    <div class="label">07 · Dark Store · 2025</div>
     <h2>Co-founded a <em>startup.</em></h2>
     <p class="lede">Dark Store — food &amp; drink delivery app, Top 50 in its App Store category. Hatchery incubator, NVIDIA Inception.</p>
   </section>
   <section class="chapter">
-    <div class="label">09 · Now · BizTrip AI</div>
+    <div class="label">08 · Now · BizTrip AI</div>
     <h2>Teaching an AI to book your <em>trip.</em></h2>
     <p class="lede">An agent that plans, books and changes flights, hotels and cars through airline systems. It's harder than it sounds — hence the face.</p>
   </section>
   <section class="chapter">
-    <div class="label">10 · Off the clock</div>
-    <h2>Barça, and an orange cat.</h2>
-    <p class="lede">Weekends are football and a very opinionated cat. Up for a conversation — or better, a coffee.</p>
+    <div class="label">09 · Off the clock</div>
+    <h2>Up for a <em>coffee?</em></h2>
+    <p class="lede">Always up for a good conversation — or better, a coffee.</p>
+  </section>
+</main>
     <div class="score" id="score" hidden>
       <span class="score-label">Last match</span>
       <span class="score-line"><b id="score-home"></b> <em id="score-result"></em> <b id="score-away"></b></span>
       <span class="score-meta" id="score-meta"></span>
     </div>
-  </section>
-</main>
+<div class="flash" id="flash"></div>
 <div class="scroll-hint" id="hint">SCROLL</div>
 <span id="cat-say">meow!</span>
-<div class="credits">Cat: <a href="https://sketchfab.com/3d-models/somali-cat-animated-ver-12-e185c3fd92b64c32b4515a32b29252fc">DreamNoms</a>, CC-BY 4.0</div>
+<div class="mood" id="mood">
+  <div class="mood-list" id="mood-list" role="listbox" aria-label="Background colour"></div>
+  <button class="mood-toggle" id="mood-toggle" aria-expanded="false" aria-controls="mood-list" aria-label="Change background colour">
+    <img src="ui/spool.png" alt="">
+  </button>
+</div>
+<div class="credits">Sounds: cat (public domain), <a href="https://commons.wikimedia.org/wiki/File:428086_inspectorj_airplane-boeing-flyby-right-to-left-a.wav">plane by InspectorJ</a>, <a href="https://commons.wikimedia.org/wiki/File:Soccer_kick_effect.ogg">kick (CC BY-SA)</a> · MacBook: <a href="https://sketchfab.com/3d-models/2021-macbook-pro-14-m1-pro-m1-max-f6b0b940fb6a4286b18a674ef32af2d3">akshatmittal</a> · Cat: <a href="https://sketchfab.com/3d-models/somali-cat-animated-ver-12-e185c3fd92b64c32b4515a32b29252fc">DreamNoms</a>, CC-BY 4.0</div>
 
 <script type="importmap">
 { "imports": {
@@ -173,10 +212,11 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { Pass } from 'three/addons/postprocessing/Pass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { loadHeads, look } from './head.js';
+import { loadHeads, look, STICKER_MESHES } from './head.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
@@ -190,6 +230,9 @@ const scene = new THREE.Scene();
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.55;
 const key = new THREE.DirectionalLight(0xfff1dc, 2.2); key.position.set(-2, 3, 3); scene.add(key);
+// Layer 0: the head and backdrop (blurred once scrolling starts). Layer 1: stickers and props (always sharp).
+const SHARP = 1;
+const toSharp = (o) => o.traverse((c) => c.layers.set(SHARP));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.VSMShadowMap;
 // A near-frontal light used only for its shadow, so the silhouette lands just behind and beside the bust on a
@@ -212,10 +255,37 @@ function paperTexture(specks) {
   const c = document.createElement('canvas'); c.width = c.height = 1024;
   const g = c.getContext('2d');
   if (!specks) {
-    g.fillStyle = '#b4ba9b'; g.fillRect(0, 0, 1024, 1024);
-    for (let i = 0; i < 9000; i++) {
-      g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,240' : '60,66,48'},${Math.random() * 0.06})`;
-      g.fillRect(Math.random() * 1024, Math.random() * 1024, 1 + Math.random() * 3, 1);
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 1024, 1024);
+    // Soft cloudy mottling, like handmade paper (drawn wrapped so the tile repeats seamlessly).
+    for (let i = 0; i < 90; i++) {
+      const x = Math.random() * 1024, y = Math.random() * 1024, r = 60 + Math.random() * 220;
+      const dark = Math.random() < 0.55, a = 0.035 + Math.random() * 0.045;
+      for (const [ox, oy] of [[0, 0], [-1024, 0], [1024, 0], [0, -1024], [0, 1024]]) {
+        const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+        gr.addColorStop(0, dark ? `rgba(70,62,48,${a})` : `rgba(255,255,250,${a * 1.4})`);
+        gr.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
+      }
+    }
+    // Faint linen weave.
+    for (let i = 0; i < 1024; i += 3) {
+      g.fillStyle = `rgba(60,55,45,${0.012 + Math.random() * 0.02})`; g.fillRect(0, i, 1024, 1);
+      g.fillStyle = `rgba(60,55,45,${0.01 + Math.random() * 0.016})`; g.fillRect(i, 0, 1, 1024);
+    }
+    // Paper fibres: short curved strands, light and dark.
+    g.lineCap = 'round';
+    for (let i = 0; i < 2600; i++) {
+      const x = Math.random() * 1024, y = Math.random() * 1024, len = 4 + Math.random() * 16, ang = Math.random() * Math.PI;
+      g.strokeStyle = Math.random() < 0.6 ? `rgba(55,50,40,${0.05 + Math.random() * 0.1})` : `rgba(255,255,248,${0.12 + Math.random() * 0.18})`;
+      g.lineWidth = 0.6 + Math.random() * 0.9;
+      g.beginPath(); g.moveTo(x, y);
+      g.quadraticCurveTo(x + Math.cos(ang + 0.6) * len * 0.5, y + Math.sin(ang + 0.6) * len * 0.5, x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+      g.stroke();
+    }
+    // Fine tooth: per-pixel speckle.
+    for (let i = 0; i < 26000; i++) {
+      g.fillStyle = Math.random() < 0.5 ? `rgba(255,255,250,${Math.random() * 0.12})` : `rgba(50,45,35,${Math.random() * 0.1})`;
+      g.fillRect(Math.random() * 1024, Math.random() * 1024, 1, 1);
     }
   } else {
     for (let i = 0; i < 70; i++) {
@@ -229,32 +299,278 @@ function paperTexture(specks) {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(10, 10);
+  t.repeat.set(specks ? 10 : 7, specks ? 10 : 7);
   return t;
 }
+// One backdrop surface per palette. Each is drawn in white and greys on a 1024² tile (wrapping at the edges so it
+// repeats seamlessly) and tinted by the material colour, so only the pattern differs between palettes.
+const R = Math.random;
+function tile(draw) {
+  const c = document.createElement('canvas'); c.width = c.height = 1024;
+  const g = c.getContext('2d');
+  // Mid-light base so light marks (stars, highlights) can still brighten once tinted; see TILE_GAIN.
+  g.fillStyle = '#ececec'; g.fillRect(0, 0, 1024, 1024);
+  // Draws fn at (x, y) and at every wrapped copy that could overlap the tile.
+  const at = (x, y, r, fn) => { for (const ox of [-1024, 0, 1024]) for (const oy of [-1024, 0, 1024]) {
+    const X = x + ox, Y = y + oy; if (X + r > 0 && X - r < 1024 && Y + r > 0 && Y - r < 1024) fn(X, Y); } };
+  draw(g, at);
+  for (let i = 0; i < 20000; i++) {
+    g.fillStyle = R() < 0.5 ? `rgba(255,255,250,${R() * 0.1})` : `rgba(50,45,35,${R() * 0.08})`;
+    g.fillRect(R() * 1024, R() * 1024, 1, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(7, 7);
+  return t;
+}
+const blot = (g, at, n, rMin, rMax, dark, a) => { for (let i = 0; i < n; i++) {
+  const x = R() * 1024, y = R() * 1024, r = rMin + R() * (rMax - rMin), al = a * (0.5 + R());
+  const col = dark === null ? (R() < 0.55 ? '70,62,48' : '255,255,250') : dark ? '70,62,48' : '255,255,250';
+  at(x, y, r, (X, Y) => { const gr = g.createRadialGradient(X, Y, 0, X, Y, r);
+    gr.addColorStop(0, `rgba(${col},${al})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(X - r, Y - r, 2 * r, 2 * r); }); } };
+const TEXTURES = {
+  paper: (g, at) => {
+    blot(g, at, 90, 60, 280, null, 0.04);
+    g.lineCap = 'round';
+    for (let i = 0; i < 2600; i++) {
+      const x = R() * 1024, y = R() * 1024, len = 4 + R() * 16, ang = R() * Math.PI;
+      g.strokeStyle = R() < 0.6 ? `rgba(55,50,40,${0.05 + R() * 0.1})` : `rgba(255,255,248,${0.12 + R() * 0.18})`;
+      g.lineWidth = 0.6 + R() * 0.9;
+      at(x, y, len, (X, Y) => { g.beginPath(); g.moveTo(X, Y);
+        g.quadraticCurveTo(X + Math.cos(ang + 0.6) * len * 0.5, Y + Math.sin(ang + 0.6) * len * 0.5, X + Math.cos(ang) * len, Y + Math.sin(ang) * len); g.stroke(); });
+    }
+  },
+  linen: (g) => {
+    for (let i = 0; i < 1024; i += 2) {
+      g.fillStyle = `rgba(60,55,45,${0.02 + R() * 0.05})`; g.fillRect(0, i, 1024, 1);
+      g.fillStyle = `rgba(60,55,45,${0.02 + R() * 0.04})`; g.fillRect(i, 0, 1, 1024);
+      if (R() < 0.08) { g.fillStyle = 'rgba(60,55,45,0.07)'; g.fillRect(0, i, 1024, 2); }
+      if (R() < 0.08) { g.fillStyle = 'rgba(255,255,250,0.12)'; g.fillRect(i, 0, 2, 1024); }
+    }
+  },
+  watercolor: (g, at) => {
+    blot(g, at, 70, 90, 320, null, 0.05);
+    // Pigment pooling at the edges of washes: faint rings.
+    for (let i = 0; i < 40; i++) {
+      const x = R() * 1024, y = R() * 1024, r = 60 + R() * 200;
+      g.strokeStyle = `rgba(80,60,55,${0.03 + R() * 0.04})`; g.lineWidth = 2 + R() * 4;
+      at(x, y, r, (X, Y) => { g.beginPath(); g.ellipse(X, Y, r, r * (0.6 + R() * 0.4), R() * 3, 0, Math.PI * 2); g.stroke(); });
+    }
+  },
+  cloud: (g, at) => { blot(g, at, 40, 200, 420, true, 0.035); blot(g, at, 120, 60, 180, false, 0.07); blot(g, at, 200, 20, 60, null, 0.04); },
+  ripple: (g) => {
+    for (let y = 0; y < 1024; y += 14) {
+      g.strokeStyle = `rgba(50,70,60,${0.03 + R() * 0.04})`; g.lineWidth = 1.5;
+      g.beginPath();
+      // Integer cycles across the tile so the waves wrap horizontally.
+      const a = 3 + R() * 5, k = (2 + Math.floor(R() * 3)) * Math.PI * 2 / 1024, ph = R() * 6.3;
+      for (let x = 0; x <= 1024; x += 8) g.lineTo(x, y + Math.sin(x * k + ph) * a);
+      g.stroke();
+    }
+  },
+  canvas: (g) => {
+    for (let i = 0; i < 1024; i += 6) {
+      g.fillStyle = `rgba(40,30,20,${0.05 + R() * 0.07})`; g.fillRect(0, i, 1024, 3);
+      g.fillStyle = `rgba(40,30,20,${0.04 + R() * 0.06})`; g.fillRect(i, 0, 3, 1024);
+      g.fillStyle = `rgba(255,250,240,${0.03 + R() * 0.05})`; g.fillRect(0, i + 3, 1024, 1);
+    }
+  },
+  felt: (g, at) => {
+    blot(g, at, 60, 80, 240, null, 0.03);
+    g.lineCap = 'round';
+    for (let i = 0; i < 9000; i++) {
+      const x = R() * 1024, y = R() * 1024, len = 2 + R() * 6, ang = R() * 6.3;
+      g.strokeStyle = R() < 0.5 ? `rgba(30,40,30,${0.05 + R() * 0.08})` : `rgba(255,255,250,${0.05 + R() * 0.08})`;
+      g.lineWidth = 0.6;
+      at(x, y, len, (X, Y) => { g.beginPath(); g.moveTo(X, Y); g.lineTo(X + Math.cos(ang) * len, Y + Math.sin(ang) * len); g.stroke(); });
+    }
+  },
+  cork: (g, at) => {
+    for (let i = 0; i < 5000; i++) {
+      const x = R() * 1024, y = R() * 1024, r = 0.8 + R() ** 3 * 5;
+      g.fillStyle = R() < 0.6 ? `rgba(40,35,20,${0.08 + R() * 0.14})` : `rgba(255,250,235,${0.08 + R() * 0.14})`;
+      at(x, y, r, (X, Y) => { g.beginPath(); g.ellipse(X, Y, r, r * (0.5 + R() * 0.5), R() * 3, 0, 7); g.fill(); });
+    }
+  },
+  stars: (g, at) => {
+    blot(g, at, 50, 100, 300, null, 0.03);
+    for (let i = 0; i < 700; i++) {
+      const x = R() * 1024, y = R() * 1024, r = 0.5 + R() ** 4 * 2.2;
+      g.fillStyle = `rgba(255,255,255,${0.25 + R() * 0.6})`;
+      at(x, y, r, (X, Y) => { g.beginPath(); g.arc(X, Y, r, 0, 7); g.fill(); });
+    }
+  },
+  slate: (g, at) => {
+    blot(g, at, 60, 80, 300, null, 0.04);
+    for (let i = 0; i < 900; i++) {
+      const y = R() * 1024, x = R() * 1024, len = 60 + R() * 300;
+      g.fillStyle = R() < 0.5 ? `rgba(30,30,30,${0.02 + R() * 0.04})` : `rgba(255,255,255,${0.02 + R() * 0.05})`;
+      at(x, y, len, (X, Y) => g.fillRect(X, Y, len, 1 + R()));
+    }
+  },
+};
+// Material colour gain that maps the tile's base grey back to exactly the palette colour.
+const TILE_GAIN = 1 / new THREE.Color('#ececec').r;
+const textureCache = {};
+const textureFor = (name) => (textureCache[name] ??= tile(TEXTURES[name]));
+// Two stacked backdrops: the current surface, and the next one fading in over it during a palette change.
 const paper = new THREE.Mesh(new THREE.PlaneGeometry(40, 40),
-  new THREE.MeshBasicMaterial({ map: paperTexture(false), toneMapped: false }));
+  new THREE.MeshBasicMaterial({ map: textureFor('paper'), color: 0xb4ba9b, toneMapped: false }));
 paper.position.z = -1.5;
 scene.add(paper);
+const paperNext = new THREE.Mesh(paper.geometry, new THREE.MeshBasicMaterial({ color: 0xb4ba9b, toneMapped: false, transparent: true, opacity: 0, depthWrite: false }));
+paperNext.position.z = -1.499;
+scene.add(paperNext);
 const specks = new THREE.Mesh(new THREE.PlaneGeometry(40, 40),
   new THREE.MeshBasicMaterial({ map: paperTexture(true), transparent: true, toneMapped: false, depthWrite: false }));
 specks.position.z = -1.45;
 scene.add(specks);
+
+// Background palettes. The paper texture is white fibre on white, tinted by the material colour, so any backdrop
+// keeps the same grain.
+// Laptop body materials, tinted to the page colour on every palette change.
+const laptopBody = [];
+const PALETTES = [
+  { name: 'Sage', tex: 'linen', bg: '#b4ba9b', ink: '#1d2433', soft: '#3f4637' },
+  { name: 'Cream', tex: 'paper', bg: '#efe8da', ink: '#1d2433', soft: '#5b5346' },
+  { name: 'Blush', tex: 'watercolor', bg: '#ecdcd6', ink: '#2a1c1f', soft: '#5d4a4c' },
+  { name: 'Powder blue', tex: 'cloud', bg: '#d8e1e6', ink: '#16202a', soft: '#44525d' },
+  { name: 'Mint', tex: 'ripple', bg: '#d6e6dc', ink: '#15241b', soft: '#40554a' },
+  { name: 'Espresso', tex: 'canvas', bg: '#3a2e28', ink: '#f3e9dc', soft: '#bfae9c', dark: true },
+  { name: 'Forest', tex: 'felt', bg: '#233329', ink: '#e9f1ea', soft: '#a7bcac', dark: true },
+  { name: 'Deep olive', tex: 'cork', bg: '#3b4031', ink: '#eef0e2', soft: '#b3b99f', dark: true },
+  { name: 'Midnight', tex: 'stars', bg: '#1f2633', ink: '#eceff5', soft: '#a9b2c3', dark: true },
+  { name: 'Charcoal', tex: 'slate', bg: '#2d2f31', ink: '#f1ede4', soft: '#b3b0a8', dark: true },
+];
+// Colours cross-fade over ~0.7s: the CSS variables and the backdrop material are interpolated together.
+const moodNow = { bg: new THREE.Color(PALETTES[0].bg), ink: new THREE.Color(PALETTES[0].ink), soft: new THREE.Color(PALETTES[0].soft) };
+const moodFrom = { bg: new THREE.Color(), ink: new THREE.Color(), soft: new THREE.Color() };
+let moodTarget = PALETTES[0], moodT = 1;
+function paintMood() {
+  const root = document.documentElement.style, css = (c) => '#' + c.getHexString();
+  root.setProperty('--paper', css(moodNow.bg)); root.setProperty('--ink', css(moodNow.ink)); root.setProperty('--ink-soft', css(moodNow.soft));
+  paper.material.color.copy(moodNow.bg).multiplyScalar(TILE_GAIN); paperNext.material.color.copy(paper.material.color);
+  // A lighter version of the page colour, so the laptop reads as the same painted object as the backdrop.
+  laptopBody.forEach((m) => m.color.copy(moodNow.bg).lerp(tmpWhite, 0.28));
+}
+function applyPalette(i, instant = false) {
+  moodTarget = PALETTES[i];
+  ['bg', 'ink', 'soft'].forEach((k) => moodFrom[k].copy(moodNow[k]));
+  moodT = instant ? 1 : 0;
+  const tex = textureFor(moodTarget.tex);
+  if (instant) {
+    ['bg', 'ink', 'soft'].forEach((k) => moodNow[k].set(moodTarget[k]));
+    paper.material.map = tex; paper.material.needsUpdate = true; paperNext.material.opacity = 0;
+    paintMood();
+  } else if (paper.material.map !== tex) {
+    paperNext.material.map = tex; paperNext.material.needsUpdate = true; paperNext.material.opacity = 0;
+  }
+  document.querySelectorAll('#mood-list button').forEach((b, k) => { b.classList.toggle('on', k === i); b.setAttribute('aria-selected', k === i); });
+}
+function tickMood(dt) {
+  if (moodT >= 1) return;
+  moodT = Math.min(1, moodT + dt / 0.7);
+  const e = moodT * moodT * (3 - 2 * moodT);
+  ['bg', 'ink', 'soft'].forEach((k) => moodNow[k].copy(moodFrom[k]).lerp(tmpMood.set(moodTarget[k]), e));
+  if (paperNext.material.map) {
+    paperNext.material.opacity = e;
+    if (moodT >= 1) { paper.material.map = paperNext.material.map; paper.material.needsUpdate = true; paperNext.material.opacity = 0; paperNext.material.map = null; }
+  }
+  paintMood();
+}
+const tmpMood = new THREE.Color(), tmpWhite = new THREE.Color(0xffffff);
+{
+  const wrap = document.getElementById('mood'), list = document.getElementById('mood-list'), toggle = document.getElementById('mood-toggle');
+  const setOpen = (open) => {
+    wrap.classList.toggle('open', open); toggle.setAttribute('aria-expanded', open);
+    // Stagger the fan-out from the button upward.
+    [...list.querySelectorAll('button')].reverse().forEach((b, k) => { b.style.transitionDelay = open ? `${k * 28}ms` : '0ms'; b.tabIndex = open ? 0 : -1; });
+  };
+  PALETTES.forEach((p, i) => {
+    if (p.dark && !PALETTES[i - 1].dark) list.appendChild(Object.assign(document.createElement('div'), { className: 'gap' }));
+    const b = document.createElement('button');
+    b.style.backgroundColor = p.bg;
+    // Embroidered icon patch for this colour, when one exists; the plain tinted swatch otherwise.
+    const img = new Image(); img.src = `ui/moods/${p.name.toLowerCase().replace(/ /g, '-')}.png`;
+    img.onload = () => b.classList.add('art'); b.style.setProperty('--art', `url(${img.src})`); b.style.setProperty('--tilt', `${(Math.random() * 24 - 12).toFixed(1)}deg`); b.setAttribute('role', 'option'); b.setAttribute('aria-label', p.name); b.tabIndex = -1;
+    b.innerHTML = `<span>${p.name}</span>`;
+    b.addEventListener('click', (e) => { e.stopPropagation(); applyPalette(i); b.classList.remove('stamp'); void b.offsetWidth; b.classList.add('stamp'); });
+    list.appendChild(b);
+  });
+  toggle.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!wrap.classList.contains('open')); });
+  addEventListener('click', () => setOpen(false));
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+  // A different colour on every visit: random, but never the one the previous load opened with.
+  let last = -1;
+  try { last = PALETTES.findIndex((p) => p.name === localStorage.getItem('lastMood')); } catch {}
+  let pick = Math.floor(Math.random() * (PALETTES.length - (last >= 0 ? 1 : 0)));
+  if (last >= 0 && pick >= last) pick++;
+  try { localStorage.setItem('lastMood', PALETTES[pick].name); } catch {}
+  applyPalette(pick, true);
+}
 const rim = new THREE.DirectionalLight(0xbcd2ff, 1.6); rim.position.set(2.5, 1.5, -2.5); scene.add(rim);
 scene.add(new THREE.HemisphereLight(0xfff6e8, 0x6b604c, 0.5));
+scene.traverse((o) => { if (o.isLight) o.layers.enableAll(); });
+shadowLight.shadow.camera.layers.enableAll();
 
 const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 50);
 const pivot = new THREE.Group(); pivot.position.y = -0.35; scene.add(pivot);
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bokeh = new BokehPass(scene, camera, { focus: 3, aperture: 0.006, maxblur: 0.008 });
-// Blur only what is behind the focal plane; anything nearer than the head (the cat coming toward you) stays sharp.
-bokeh.materialBokeh.fragmentShader = bokeh.materialBokeh.fragmentShader
-  .replace('float factor = ( focus + viewZ );', 'float factor = min( focus + viewZ, 0.0 );');
-bokeh.materialBokeh.needsUpdate = true;
-composer.addPass(bokeh);
+// Separable Gaussian blur of the base layer (head + backdrop); strength is driven by scroll.
+const blurShader = (dir) => ({
+  uniforms: { tDiffuse: { value: null }, uDir: { value: new THREE.Vector2(...dir) }, uRadius: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform vec2 uDir; uniform float uRadius; uniform vec2 uRes; varying vec2 vUv;
+    void main() {
+      if (uRadius < 0.05) { gl_FragColor = texture2D(tDiffuse, vUv); return; }
+      vec4 acc = vec4(0.0); float wsum = 0.0;
+      for (int i = -8; i <= 8; i++) {
+        float f = float(i) / 8.0, w = exp(-f * f * 2.5);
+        acc += texture2D(tDiffuse, vUv + uDir * f * uRadius / uRes) * w; wsum += w;
+      }
+      gl_FragColor = acc / wsum;
+    }`,
+});
+const blurH = new ShaderPass(blurShader([1, 0])), blurV = new ShaderPass(blurShader([0, 1]));
+composer.addPass(blurH); composer.addPass(blurV);
+// Draws the sharp layer over the blurred image. The head is first re-rendered depth-only, so stickers on the far
+// side of the head and props passing behind it are still hidden.
+class SharpLayerPass extends Pass {
+  constructor() { super(); this.needsSwap = false; this.depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false }); }
+  render(renderer, writeBuffer, readBuffer) {
+    const auto = renderer.autoClear, bg = scene.background;
+    renderer.autoClear = false; scene.background = null;
+    renderer.setRenderTarget(this.renderToScreen ? null : readBuffer);
+    renderer.clearDepth();
+    camera.layers.set(0); scene.overrideMaterial = this.depthOnly; renderer.render(scene, camera);
+    scene.overrideMaterial = null; camera.layers.set(SHARP); renderer.render(scene, camera);
+    camera.layers.set(0);
+    renderer.autoClear = auto; scene.background = bg;
+  }
+}
+composer.addPass(new SharpLayerPass());
 composer.addPass(new OutputPass());
+// Matte print finish, applied to the final sRGB image: lifted blacks, softened highlights, slightly muted colour,
+// and fine animated monochrome grain.
+const matte = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv;
+    float h(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+      c.rgb = mix(vec3(l), c.rgb, 0.88);
+      c.rgb = mix(vec3(0.075, 0.07, 0.065), vec3(0.955, 0.945, 0.925), c.rgb);
+      float g = h(floor(gl_FragCoord.xy) + fract(uTime * 7.0) * 91.7) - 0.5;
+      c.rgb += g * 0.055;
+      gl_FragColor = c;
+    }`,
+});
+composer.addPass(matte);
 
 let catTick = () => {};
 
@@ -354,9 +670,9 @@ function buildPlane() {
 }
 const plane = buildPlane();
 plane.visible = false;
-scene.add(plane);
+scene.add(plane); toSharp(plane);
 // The plane takes off when the "got on a plane" chapter is reached, then circles the head for the rest of the visit.
-const PLANE_CHAPTER = 5;
+const PLANE_CHAPTER = 4;
 const TAKEOFF = { from: new THREE.Vector3(-3.2, -0.6, 1.4), duration: 1.8 };
 let takeoffAt = null;
 // Tilted ellipse around the head, drawn in world space so it ignores the head's own rotation.
@@ -404,12 +720,98 @@ const MOLECULES = [
   { g: water, at: new THREE.Vector3(0.3, -0.72, 0.35), spin: 0.8, size: 0.8 },
   { g: water.clone(), at: new THREE.Vector3(0.12, 0.12, 0.5), spin: 1.0, size: 0.55 },
 ];
-MOLECULES.forEach((m) => { m.g.visible = false; scene.add(m.g); });
-const RESEARCH_CHAPTER = 7;
+MOLECULES.forEach((m) => { m.g.visible = false; scene.add(m.g); toSharp(m.g); });
+const RESEARCH_CHAPTER = 6;
+
+// "One-way ticket" chapter: light monsoon rain that, after a few seconds, eases into falling snow. Camera space,
+// so it covers the frame whatever the shot.
+const WEATHER_CHAPTER = 4, WX = 320;
+const wx = [...Array(WX)].map(() => ({ x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, d: THREE.MathUtils.randFloat(1.1, 3.2), ph: Math.random() * 6.3 }));
+const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(WX * 6), 3));
+const rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0xdfe8ee, transparent: true, opacity: 0, depthWrite: false }));
+const snowGeo = new THREE.BufferGeometry(); snowGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(WX * 3), 3));
+const snowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
+const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ map: snowTex, size: 0.018, transparent: true, opacity: 0, depthWrite: false, color: 0xffffff }));
+rain.frustumCulled = snow.frustumCulled = false;
+rain.visible = snow.visible = false;
+camera.add(rain, snow); toSharp(rain); toSharp(snow);
+let weatherAt = null, boltsFired = 0;
+// Two strikes during the monsoon phase: a double-flicker of light, then thunder a beat later.
+const BOLTS = [0.7, 1.9];
+const flashEl = document.getElementById('flash');
+function strike() {
+  flashEl.animate([{ opacity: 0 }, { opacity: 0.55 }, { opacity: 0.1 }, { opacity: 0.4 }, { opacity: 0 }],
+    { duration: 520, easing: 'ease-out' });
+  setTimeout(thunder, 260 + Math.random() * 300);
+}
+let thunderCtx = null;
+// Plane flyby: InspectorJ (freesound.org), CC BY 4.0, via Wikimedia Commons.
+const planeSound = Object.assign(new Audio('audio/plane.mp3'), { preload: 'auto', volume: 0.55 });
+// Only one of the plane / cat sounds plays at a time; whichever starts second is skipped (clicks win).
+let soundBusyUntil = 0;
+const nowS = () => performance.now() / 1000;
+function playPlane(force = false) {
+  if (!force && nowS() < soundBusyUntil) return;
+  catAudio.stop();
+  planeSound.currentTime = 0; planeSound.play().catch(() => {});
+  soundBusyUntil = nowS() + 4;
+}
+const catAudio = { stop: () => {} };
+// Football kick (Wikimedia Commons "Soccer kick effect", CC BY-SA 3.0). Bounces reuse it, quieter.
+const kickSound = Object.assign(new Audio('audio/kick.mp3'), { preload: 'auto' });
+function playKick(strength = 1) {
+  const k = kickSound.cloneNode(); k.volume = Math.min(1, 0.25 + 0.75 * strength); k.play().catch(() => {});
+}
+// Browsers only allow sound after the visitor has clicked or pressed a key, so thunder is silent until then.
+addEventListener('pointerdown', () => { thunderCtx ??= new AudioContext(); thunderCtx.resume(); }, { once: true });
+function thunder() {
+  if (!thunderCtx || thunderCtx.state !== 'running') return;
+  const ac = thunderCtx, len = ac.sampleRate * 3, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 180;
+  const g = ac.createGain(), t = ac.currentTime;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + 2.8);
+  src.connect(lp); lp.connect(g); g.connect(ac.destination); src.start();
+}
+
+// "Namaste" chapter: embroidered India patches (kite, marigold, chai, diya) float in around the frame, plus a few
+// small marigolds tumbling down. Positions are fractions of the half-view at a fixed depth, so they frame the
+// forehead close-up at any window size.
+const INDIA_CHAPTER = 1, INDIA_DEPTH = 1.5;
+const indiaTex = (n) => { const t = new THREE.TextureLoader().load(`stickers/india/${n}.png`); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+const INDIA = [
+  { n: 'kite', at: [-0.72, 0.5], h: 0.52, rot: 0.2, sway: 0.25 },
+  { n: 'marigold', at: [0.66, 0.58], h: 0.36, rot: -0.2, sway: 0.1 },
+  { n: 'marigold2', at: [-0.62, -0.1], h: 0.3, rot: 0.15, sway: 0.08 },
+  { n: 'chai', at: [0.7, 0.0], h: 0.42, rot: 0.08, sway: 0.06 },
+  { n: 'diya', at: [0.62, -0.6], h: 0.32, rot: -0.05, sway: 0.04 },
+].map((d, i) => {
+  const tex = indiaTex(d.n);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, depthWrite: false }));
+  mesh.visible = false; camera.add(mesh);
+  return { ...d, mesh, tex, ph: i * 1.9 };
+});
+const marigoldTex = [indiaTex('marigold'), indiaTex('marigold2')];
+const FALLING = [...Array(5)].map((_, i) => {
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: marigoldTex[i % 2], transparent: true, toneMapped: false, depthWrite: false }));
+  mesh.visible = false; camera.add(mesh);
+  return { mesh, x: [-0.55, -0.3, 0.35, 0.6, -0.8][i], speed: 0.06 + i * 0.012, ph: i / 5, spin: (i % 2 ? 1 : -1) * (0.6 + i * 0.2) };
+});
+[...INDIA, ...FALLING].forEach((d) => toSharp(d.mesh));
+// Kite string: a thread from the kite's bridle that sags down and comes toward the viewer, as if they're flying it.
+const kiteString = new THREE.Mesh(new THREE.BufferGeometry(),
+  new THREE.MeshBasicMaterial({ color: 0xf2ead8, transparent: true, toneMapped: false }));
+kiteString.visible = false; camera.add(kiteString); toSharp(kiteString);
+const kiteA = new THREE.Vector3(), kiteB = new THREE.Vector3(), kiteC = new THREE.Vector3();
+
 
 // Dark Store chapter: a phone showing the app, floating beside the head. Kept in camera space so it frames the
 // same way regardless of that chapter's camera shot.
-const DARKSTORE_CHAPTER = 8;
+const DARKSTORE_CHAPTER = 7;
 const phone = new THREE.Group();
 {
   const W = 0.21, H = 0.42, D = 0.022;
@@ -434,7 +836,7 @@ const phone = new THREE.Group();
 }
 phone.visible = false;
 scene.add(camera);
-camera.add(phone);
+camera.add(phone); toSharp(phone);
 
 // The cat and the ball share one floor: the bottom edge of the page, in camera space (the camera only translates).
 // Positions are (x, depth-from-camera); depth changes only their size. The bust is a keep-out ellipse on that floor.
@@ -454,14 +856,29 @@ function pushOutOfBust(p, pad = 0) {
   const nx = p.x / (rx * rx), nz = (p.depth - cur.dist) / (rz * rz), nl = Math.hypot(nx, nz);
   return { nx: nx / nl, nz: nz / nl };
 }
-const ball = buildBall(); ball.visible = false; scene.add(camera); camera.add(ball);
-const BALL_CHAPTER = 10;
+const ball = buildBall(); ball.visible = false; scene.add(camera); camera.add(ball); toSharp(ball);
+const BALL_CHAPTER = 9;
 // Ball physics on the shared floor: gravity, the page's bottom edge as the ground, the side edges of the view,
 // the backdrop wall and the bust (keep-out ellipse). A click kicks it in a random direction into the scene.
 const BALL = { r: 0.075, g: -5.5, floorBounce: 0.55, wallBounce: 0.45, sideBounce: 0.6, roll: 0.45, air: 0.15 };
 const ballP = { x: 0.9, y: 0, depth: 2.4 }, ballVel = new THREE.Vector3();
 let ballDropped = false, ballHover = false;
 const ballRay = new THREE.Raycaster(), ballNdc = new THREE.Vector2();
+ballRay.layers.enableAll();
+const planeRay = new THREE.Raycaster(); planeRay.layers.enableAll();
+// A clicked plane does one barrel roll over 0.9s.
+const rollOf = (p) => { const u = (clock.elapsedTime - (p.userData.rollAt ?? -9)) / 0.9; return u >= 0 && u < 1 ? THREE.MathUtils.smootherstep(u, 0, 1) * Math.PI * 2 : 0; };
+addEventListener('click', (e) => {
+  if (e.target.closest('a, button')) return;
+  ballNdc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  planeRay.setFromCamera(ballNdc, camera);
+  const all = [plane, ...trafficPlanes.map((p) => p.g)].filter((p) => p.visible);
+  const hitPlane = planeRay.intersectObjects(all, true)[0];
+  if (!hitPlane) return;
+  let root = hitPlane.object; while (!all.includes(root)) root = root.parent;
+  root.userData.rollAt = clock.elapsedTime;
+  playPlane(true);
+});
 addEventListener('click', (e) => {
   if (!ball.visible || e.target.closest('a')) return;
   ballNdc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -471,6 +888,7 @@ addEventListener('click', (e) => {
   const power = THREE.MathUtils.randFloat(2.2, 3.4);
   // (vx, vy, vDepth): mostly away from the viewer, angled left or right at random.
   ballVel.set(Math.sin(ang) * power, THREE.MathUtils.randFloat(1.3, 2.2), Math.cos(ang) * power);
+  playKick(1);
 });
 addEventListener('pointermove', (e) => {
   if (!ball.visible) return;
@@ -483,12 +901,12 @@ addEventListener('pointermove', (e) => {
 
 // BizTrip chapter: extra planes join the orbit, and boarding passes / a hotel key card float around the head.
 // One pass flips from a red "fare expired" stamp to a green "confirmed" one while it is on screen.
-const BIZ_CHAPTER = 9;
+const BIZ_CHAPTER = 8;
 const trafficPlanes = [
   { rx: 0.8, rz: 0.7, cy: 0.1, tilt: -0.3, speed: -0.5, phase: 1.2 },
   { rx: 1.1, rz: 0.9, cy: 0.55, tilt: 0.12, speed: 0.45, phase: 3.4 },
   { rx: 0.9, rz: 0.75, cy: -0.25, tilt: 0.35, speed: 0.6, phase: 5.0 },
-].map((o) => { const g = buildPlane(); g.visible = false; scene.add(g); return { ...o, g }; });
+].map((o) => { const g = buildPlane(); g.visible = false; scene.add(g); toSharp(g); return { ...o, g }; });
 
 function passCanvas({ from, to, time, seat, stamp }) {
   const c = document.createElement('canvas'); c.width = 512; c.height = 220;
@@ -522,7 +940,7 @@ function keyCardCanvas() {
   const gr = g.createLinearGradient(0, 0, 320, 200); gr.addColorStop(0, '#1d2433'); gr.addColorStop(1, '#3b4a6b');
   g.fillStyle = gr; g.beginPath(); g.roundRect(0, 0, 320, 200, 18); g.fill();
   g.fillStyle = '#d9b45a'; g.fillRect(28, 70, 56, 42);
-  g.fillStyle = '#fff'; g.font = '700 26px "JetBrains Mono", monospace'; g.fillText('ROOM 1204', 110, 100);
+  g.fillStyle = '#fff'; g.font = '700 26px "JetBrains Mono", monospace'; g.fillText('ROOM 227', 110, 100);
   g.font = '400 16px "JetBrains Mono", monospace'; g.fillText('HOTEL · KEY CARD', 110, 130);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   return t;
@@ -533,16 +951,68 @@ const flipBad = passCanvas({ from: 'SFO', to: 'JFK', time: '07:40', seat: '14C',
 const flipOk = passCanvas({ from: 'SFO', to: 'JFK', time: '07:40', seat: '14C', stamp: 'ok' });
 const CARDS = [
   { mesh: new THREE.Mesh(passGeo, cardMat(flipBad)), at: [-0.6, 0.12, 0.45], rot: 0.2, flip: true },
-  { mesh: new THREE.Mesh(passGeo, cardMat(passCanvas({ from: 'BOS', to: 'LHR', time: '21:15', seat: '3A' }))), at: [0.62, 0.32, 0.35], rot: -0.25 },
-  { mesh: new THREE.Mesh(passGeo, cardMat(passCanvas({ from: 'BOM', to: 'SYR', time: '02:05', seat: '31F' }))), at: [0.66, -0.12, 0.3], rot: 0.3 },
-  { mesh: new THREE.Mesh(keyGeo, cardMat(keyCardCanvas())), at: [-0.52, 0.5, 0.3], rot: -0.4 },
+  { mesh: new THREE.Mesh(keyGeo, cardMat(keyCardCanvas())), at: [0.62, 0.32, 0.35], rot: -0.25 },
 ];
 CARDS.forEach((c, i) => {
-  c.mesh.castShadow = true; c.mesh.visible = false; scene.add(c.mesh);
+  c.mesh.castShadow = true; c.mesh.visible = false; scene.add(c.mesh); toSharp(c.mesh);
   c.from = new THREE.Vector3(i % 2 ? 1.6 : -1.6, -1.1, 0.8);
   c.to = new THREE.Vector3(...c.at);
 });
 let bizStart = null;
+
+// BizTrip laptop: a MacBook Pro 14" model (akshatmittal, CC BY 4.0). Its display mesh shows the app's home screen,
+// then the trip-planning chat; the back-of-lid logo is removed.
+const laptop = new THREE.Group();
+const laptopScreens = [];
+{
+  const g = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('models/macbook.glb');
+  const mb = g.scene;
+  let screen = null;
+  mb.traverse((o) => {
+    if (!o.isMesh) return;
+    if (o.material.name === 'ZpTrUizuxJQUyzW') o.visible = false;
+    if (o.material.name === 'UpOvKwLUUXPmnPU') screen = o;
+    // The cover glass sits in front of the display; keep just a faint reflective tint of it.
+    if (o.material.name === 'SELuppcPLrlTpBi') { o.material = o.material.clone(); Object.assign(o.material, { transparent: true, opacity: 0.12, depthWrite: false }); o.renderOrder = 2; }
+    o.castShadow = true;
+    // All parts go matte.
+    if (o.material !== screen?.material && o.material.name !== 'SELuppcPLrlTpBi') {
+      const c = o.material.color, lum = c ? c.r * 0.3 + c.g * 0.59 + c.b * 0.11 : 0;
+      o.material = new THREE.MeshStandardMaterial({ color: c ? c.clone() : 0x222222, metalness: 0, roughness: 0.9,
+        map: o.material.map || null, normalMap: o.material.normalMap || null });
+      // Everything but the near-black parts (keycaps, hinge gap) takes the body colour, speaker grilles included.
+      if (lum > 0.06) laptopBody.push(o.material);
+      // The speaker grilles are textured quads beside the keyboard; paint them solid body colour.
+      if (o.name === 'NgmQYtxXWDmCavo' || o.name === 'PSIiVLWbMOjTmDb') { o.material.map = null; laptopBody.push(o.material); }
+    }
+  });
+  paintMood();
+  const box = new THREE.Box3().setFromObject(mb), size = box.getSize(new THREE.Vector3());
+  const k = 0.34 / size.x;
+  mb.scale.setScalar(k);
+  mb.position.copy(box.getCenter(new THREE.Vector3())).multiplyScalar(-k);
+  laptop.add(mb);
+  // The model's display has no texture coordinates, so map it from its own extent: x across, height up the lid.
+  {
+    const pos = screen.geometry.attributes.position, bb = new THREE.Box3().setFromBufferAttribute(pos), uv = [];
+    for (let i = 0; i < pos.count; i++) {
+      uv.push((pos.getX(i) - bb.min.x) / (bb.max.x - bb.min.x), (pos.getY(i) - bb.min.y) / (bb.max.y - bb.min.y));
+    }
+    screen.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  }
+  ['ui/biztrip-1-mac.jpg', 'ui/biztrip-2-mac.jpg'].forEach((src, i) => {
+    const tex = new THREE.TextureLoader().load(src); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+    // Other lid layers overlap the display surface in the model, so the screen is drawn last without a depth test.
+    // The laptop always faces the camera, so nothing should ever be in front of it.
+    const mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, transparent: true, opacity: i ? 0 : 1,
+      side: THREE.DoubleSide, depthTest: false, depthWrite: false });
+    const m = i ? screen.clone() : screen;
+    m.material = mat; m.renderOrder = 10 + i;
+    if (i) screen.parent.add(m);
+    laptopScreens.push(m);
+  });
+}
+laptop.visible = false; camera.add(laptop); toSharp(laptop);
 Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.material.transparent) o.castShadow = true; }));
 {
   // A cat that wanders the floor of the scene at random: toward the viewer, behind the bust, and off-screen.
@@ -583,7 +1053,7 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
   model.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   cat.add(model);
   scene.add(camera);
-  camera.add(cat);
+  camera.add(cat); toSharp(cat);
   const bodyLen = Math.max(size.x, size.z) * k;
 
   let current = A.walk; current.play();
@@ -627,12 +1097,35 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
   }
   addEventListener('click', (e) => {
     if (!hit(e)) return;
-    const top = toScreen(cat.getWorldPosition(tmpS).setY(cat.getWorldPosition(tmpS).y + CAT_H * 1.3));
-    say.style.left = top.x + 'px'; say.style.bottom = (innerHeight - top.y) + 'px';
+    sayUntil = clock.elapsedTime + 1.6;
     say.classList.add('on');
-    setTimeout(() => say.classList.remove('on'), 1400);
+    playMeow();
     if (state === 'walk') { state = 'sitDown'; stateT = 0; go(A.sitDown); }
   });
+  // Real recordings (public domain, Wikimedia Commons): one of three meows, then a purr.
+  const meows = [1, 2, 3].map((n) => Object.assign(new Audio(`audio/meow-${n}.mp3`), { preload: 'auto' }));
+  const purr = Object.assign(new Audio('audio/purr.mp3'), { preload: 'auto', volume: 0.7 });
+  catAudio.stop = () => { meows.forEach((a) => a.pause()); purr.pause(); clearTimeout(purrTimer); };
+  let purrTimer = 0;
+  function playMeow(force = true) {
+    if (!force && nowS() < soundBusyUntil) return;
+    planeSound.pause();
+    soundBusyUntil = nowS() + 4;
+    meows.forEach((a) => a.pause());
+    const m = meows[Math.floor(Math.random() * meows.length)]; m.currentTime = 0; m.play().catch(() => {});
+    purr.pause(); purr.currentTime = 0;
+    purrTimer = setTimeout(() => purr.play().catch(() => {}), 900);
+  }
+  // The bubble follows the cat's head while it shows.
+  let sayUntil = 0;
+  const headPt = new THREE.Vector3();
+  function placeSay() {
+    if (clock.elapsedTime > sayUntil) { say.classList.remove('on'); return; }
+    // Skinned bounds use the bind pose, so place it from the feet at roughly head height instead.
+    cat.getWorldPosition(headPt); headPt.y += CAT_H * 0.8;
+    const p = toScreen(headPt);
+    say.style.left = p.x + 'px'; say.style.bottom = (innerHeight - p.y + 6) + 'px';
+  }
   let catHover = false;
   addEventListener('pointermove', (e) => {
     const near = hit(e);
@@ -646,8 +1139,13 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
     if (!arrived) {
       if (chapterPos() < SHOTS.length - 1.4) return;
       arrived = true; cat.visible = true;
-      pos.off = 2.6; pos.x = halfWAt(pos.off) + bodyLen; heading = Math.PI / 2;
-      target.off = 2.2; target.x = 0.2 * halfWAt(2.2);
+      // Starts just left of the scoreboard card, in front of the bust's keep-out zone, and walks left from there.
+      pos.off = Math.max(NEAR, cur.dist - KEEP_OUT.rz - 0.1);
+      const card = document.getElementById('score').getBoundingClientRect();
+      const px = card.width ? card.left - 110 : innerWidth * 0.75;
+      pos.x = (px / innerWidth * 2 - 1) * halfWAt(pos.off) - bodyLen * 0.5; heading = Math.PI / 2;
+      target.off = pos.off; target.x = -0.35 * halfWAt(pos.off);
+      playMeow(false);
     }
     stateT += dt;
     if (state === 'away') {
@@ -698,6 +1196,7 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
       state = 'walk'; stateT = 0; nextRest = 9 + Math.random() * 8; pickTarget(); go(A.walk, 0.3);
     }
     cat.position.set(pos.x, floorY(pos.off), -pos.off);
+    placeSay();
     cat.rotation.y = heading;
     mixer.update(dt);
   };
@@ -710,9 +1209,8 @@ setTimeout(() => document.getElementById('loading').remove(), 700);
 // The plane shot frames the hair so the neck stickers stay hidden until the final chapter.
 // `y` is the height the camera frames and `dist` how close it gets.
 const SHOTS = [
-  { yaw: 0, y: 0.15, dist: 4.6 },
+  { yaw: 0, y: 0.15, dist: 4.6, x: -0.55 },
   { yaw: -22, y: 0.14, dist: 2.0 },
-  { yaw: -70, y: -0.30, dist: 2.1 },
   { yaw: -56, y: -0.04, dist: 1.9 },
   { yaw: -40, y: -0.18, dist: 1.9 },
   { yaw: -180, y: 0.45, dist: 2.8 },
@@ -721,6 +1219,11 @@ const SHOTS = [
   { yaw: -252, y: -0.16, dist: 2.1 },
   { yaw: -360, y: 0.02, dist: 3.0 },
   { yaw: -565, y: -0.22, dist: 2.6 },
+];
+// The patch each chapter is about, by chapter index.
+const CHAPTER_STICKERS = [
+  [], ['00-india.png', '01-mumbai.png'], ['02-nmims.png'], ['03-accenture.png'], ['05-usa.png'],
+  ['05b-syracuse.png'], ['06-chemistry.png'], ['06b-darkstore.png'], ['07-biztrip.png'], ['08-fcb.png', '09-cat.png'],
 ];
 // The face is swapped while the back of the head is to the camera, so the change is never seen happening.
 const SWAP_YAW = -180;
@@ -755,7 +1258,7 @@ function shotAt(p) {
   const t = THREE.MathUtils.smoothstep(p - i, 0.3, 1.0);
   const a = SHOTS[i], b = SHOTS[i + 1];
   return { yaw: THREE.MathUtils.lerp(a.yaw, b.yaw, t), y: THREE.MathUtils.lerp(a.y, b.y, t),
-    dist: THREE.MathUtils.lerp(a.dist, b.dist, t) };
+    dist: THREE.MathUtils.lerp(a.dist, b.dist, t), x: THREE.MathUtils.lerp(a.x ?? 0, b.x ?? 0, t) };
 }
 
 let cur = shotAt(chapterPos());
@@ -764,6 +1267,7 @@ addEventListener('scroll', () => {
   const active = Math.round(chapterPos());
   sections.forEach((s, i) => s.classList.toggle('on', i === active));
   if (active === sections.length - 1) document.getElementById('socials').classList.add('on');
+  document.getElementById('score').classList.toggle('on', active === sections.length - 1);
 });
 sections[0].classList.add('on');
 
@@ -779,6 +1283,7 @@ renderer.setAnimationLoop(() => {
   cur.yaw += (target.yaw - cur.yaw) * k;
   cur.y += (target.y - cur.y) * k;
   cur.dist += (target.dist - cur.dist) * k;
+  cur.x += (target.x - cur.x) * k;
 
   showFaces(cur.yaw);
 
@@ -790,8 +1295,10 @@ renderer.setAnimationLoop(() => {
 
   // Head stays centred; narrow screens lift the framing so the bottom text sits under the chin.
   const lift = narrow ? -cur.dist * 0.12 : -cur.dist * 0.04;
-  camera.position.set(0, cur.y + lift, cur.dist);
-  camera.lookAt(0, cur.y + lift, 0);
+  // Landing shot sits the head right of centre (clear of the name); later chapters centre it. Narrow screens stay centred.
+  const cx = narrow ? 0 : cur.x;
+  camera.position.set(cx, cur.y + lift, cur.dist);
+  camera.lookAt(cx, cur.y + lift, 0);
 
   scene.updateMatrixWorld();
   Object.values(heads).forEach((h) => {
@@ -800,8 +1307,14 @@ renderer.setAnimationLoop(() => {
     const toCam = tmpC.copy(camera.position).sub(h.root.getWorldPosition(tmpW)).normalize();
     h.front.value = THREE.MathUtils.smoothstep(fwd.dot(toCam), 0.5, 0.82);
   });
-  // Focus on the near surface of the head so ears, hair and the backdrop fall off, like a macro lens.
-  bokeh.uniforms.focus.value = Math.max(0.5, cur.dist - 0.45);
+  // Only the patch for the chapter on screen joins the sharp layer; the rest blur with the face.
+  const focusFiles = CHAPTER_STICKERS[Math.round(chapterPos())] || [];
+  STICKER_MESHES.forEach((m) => m.layers.set(focusFiles.includes(m.userData.sticker) ? SHARP : 0));
+  // Face sharp on the intro, softly blurred from the first scroll on, so the patches and props carry the story.
+  const blurPx = THREE.MathUtils.smoothstep(chapterPos(), 0.15, 0.8) * 7 * renderer.getPixelRatio();
+  [blurH, blurV].forEach((b) => { b.uniforms.uRadius.value = blurPx; b.uniforms.uRes.value.set(renderer.domElement.width, renderer.domElement.height); });
+  matte.uniforms.uTime.value = clock.elapsedTime;
+  tickMood(dt);
   if (takeoffAt === null && chapterPos() > PLANE_CHAPTER - 0.4) {
     takeoffAt = clock.elapsedTime;
     plane.visible = true;
@@ -815,6 +1328,7 @@ renderer.setAnimationLoop(() => {
     plane.lookAt(t < 1 ? tmpA.copy(TAKEOFF.from).lerp(tmpB, Math.min(1, e + 0.05)) : orbitPos(a + 0.05, tmpA));
     plane.rotateY(-Math.PI / 2);
     plane.rotateX(-0.35);
+    plane.rotateX(rollOf(plane));
     plane.scale.setScalar(0.4 + 0.6 * e);
   }
   const pr = chapterPos();
@@ -847,6 +1361,7 @@ renderer.setAnimationLoop(() => {
         const ground = floorAt(ballP.depth) + BALL.r;
         if (ballP.y < ground) {
           ballP.y = ground;
+          if (ballVel.y < -0.8) playKick(Math.min(1, -ballVel.y / 4) * 0.6);
           ballVel.y = Math.abs(ballVel.y) < 0.25 ? 0 : -ballVel.y * BALL.floorBounce;
           ballVel.x *= 0.94; ballVel.z *= 0.94;
         }
@@ -893,6 +1408,106 @@ renderer.setAnimationLoop(() => {
       phone.userData.screenTex.offset.y = top * (1 - k);
     }
   }
+  {
+    const pi = chapterPos();
+    const w = THREE.MathUtils.smoothstep(pi, INDIA_CHAPTER - 0.55, INDIA_CHAPTER - 0.1)
+      - THREE.MathUtils.smoothstep(pi, INDIA_CHAPTER + 0.35, INDIA_CHAPTER + 0.8);
+    const t = clock.elapsedTime, e = 1 - (1 - Math.max(w, 0)) ** 3;
+    const hw = halfWidthAt(INDIA_DEPTH), hh = FLOOR_TAN * INDIA_DEPTH;
+    INDIA.forEach((d) => {
+      d.mesh.visible = w > 0.01;
+      if (!d.mesh.visible) return;
+      const img = d.tex.image, asp = img ? img.width / img.height : 1, size = d.h * hh * 2 * 0.5;
+      d.mesh.scale.set(size * asp * e, size * e, 1);
+      d.mesh.position.set(d.at[0] * hw + Math.sin(t * 0.8 + d.ph) * 0.02, d.at[1] * hh + Math.sin(t * 1.1 + d.ph) * 0.025 - (1 - e) * 0.3, -INDIA_DEPTH);
+      d.mesh.rotation.z = d.rot + Math.sin(t * 0.9 + d.ph) * d.sway;
+      // The diya's flame flickers: a quick, small breathing of scale.
+      if (d.n === 'diya') d.mesh.scale.multiplyScalar(1 + Math.sin(t * 11) * 0.015 + Math.sin(t * 6.7) * 0.012);
+    });
+    {
+      const k = INDIA.find((d) => d.n === 'kite');
+      kiteString.visible = k.mesh.visible;
+      if (kiteString.visible) {
+        // Bridle point: the middle of the kite's diamond, which sits a little above the image centre.
+        kiteA.set(0, 0.12, 0).applyEuler(k.mesh.rotation).multiply(k.mesh.scale).add(k.mesh.position);
+        // Ends below the frame and close to the camera; the control point makes it sag like real line.
+        kiteB.set(hw * 0.05, -hh * 1.7, -0.5);
+        kiteC.set(kiteA.x * 0.6 + kiteB.x * 0.4 - 0.05, (kiteA.y + kiteB.y) * 0.5 - hh * 0.35, (kiteA.z + kiteB.z) * 0.5);
+        kiteString.geometry.dispose();
+        kiteString.geometry = new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(kiteA, kiteC, kiteB), 48, 0.0024, 6);
+        kiteString.material.opacity = 0.85 * e;
+      }
+    }
+    FALLING.forEach((f) => {
+      f.mesh.visible = w > 0.01;
+      if (!f.mesh.visible) return;
+      const u = (t * f.speed + f.ph) % 1;
+      const sz = 0.1 * hh * e;
+      f.mesh.scale.set(sz, sz, 1);
+      f.mesh.position.set(f.x * hw + Math.sin(t * 0.7 + f.ph * 6) * 0.04, (1.1 - u * 2.2) * hh, -INDIA_DEPTH - 0.1);
+      f.mesh.rotation.z = t * f.spin;
+      f.mesh.material.opacity = Math.min(1, Math.sin(u * Math.PI) * 3) * e;
+    });
+  }
+  {
+    const pw = chapterPos();
+    const w = THREE.MathUtils.smoothstep(pw, WEATHER_CHAPTER - 0.55, WEATHER_CHAPTER - 0.1)
+      - THREE.MathUtils.smoothstep(pw, WEATHER_CHAPTER + 0.35, WEATHER_CHAPTER + 0.8);
+    rain.visible = snow.visible = w > 0.01;
+    if (w <= 0.01) { weatherAt = null; boltsFired = 0; }
+    else {
+      if (weatherAt === null) weatherAt = clock.elapsedTime;
+      while (boltsFired < BOLTS.length && clock.elapsedTime - weatherAt > BOLTS[boltsFired]) { strike(); boltsFired++; }
+      // 0 = monsoon, 1 = snow: rain for ~2.5s after arriving, then a 2s crossfade.
+      const m = THREE.MathUtils.smoothstep(clock.elapsedTime - weatherAt, 2.5, 4.5);
+      const rp = rainGeo.attributes.position.array, sp = snowGeo.attributes.position.array, t = clock.elapsedTime;
+      wx.forEach((p, i) => {
+        const hw = FLOOR_TAN * camera.aspect * p.d, hh = FLOOR_TAN * p.d;
+        // Fall speed eases from rain to snow; snow also sways.
+        p.y -= dt * THREE.MathUtils.lerp(2.6, 0.18, m) / p.d * 2;
+        p.x += dt * THREE.MathUtils.lerp(-0.35, Math.sin(t * 0.7 + p.ph) * 0.12, m) / p.d;
+        if (p.y < -1.05) { p.y = 1.05; p.x = Math.random() * 2 - 1; }
+        if (p.x < -1.05) p.x += 2.1; else if (p.x > 1.05) p.x -= 2.1;
+        const X = p.x * hw, Y = p.y * hh, Z = -p.d, len = 0.06 * p.d * 0.5;
+        rp.set([X, Y, Z, X + 0.012 * len * 10, Y + len, Z], i * 6);
+        sp.set([X, Y, Z], i * 3);
+      });
+      rainGeo.attributes.position.needsUpdate = snowGeo.attributes.position.needsUpdate = true;
+      rain.material.opacity = 0.35 * (1 - m) * w;
+      snow.material.opacity = 0.85 * m * w;
+    }
+  }
+  {
+    const pl = chapterPos();
+    const w = THREE.MathUtils.smoothstep(pl, BIZ_CHAPTER - 0.55, BIZ_CHAPTER - 0.1)
+      - THREE.MathUtils.smoothstep(pl, BIZ_CHAPTER + 0.35, BIZ_CHAPTER + 0.8);
+    const was = laptop.visible;
+    laptop.visible = w > 0.01;
+    if (laptop.visible && !was) laptop.userData.shownAt = clock.elapsedTime;
+    if (laptop.visible) {
+      const t = clock.elapsedTime, e = 1 - (1 - w) ** 3, D = 1.5;
+      laptop.position.set(halfWidthAt(D) * 0.6, -FLOOR_TAN * D * 0.38 - (1 - e) * 0.4 + Math.sin(t * 0.8) * 0.01, -D);
+      laptop.rotation.set(0.28 + mouse.y * 0.05, -0.45 + mouse.x * 0.1 + Math.sin(t * 0.5) * 0.04, 0.02);
+      laptop.scale.setScalar(0.7 + 0.3 * e);
+      // Home screen 3s, 0.8s cross-fade, chat screen 3.5s, fade back.
+      const ph = (t - laptop.userData.shownAt) % 8;
+      const k = THREE.MathUtils.smoothstep(ph, 3, 3.8) - THREE.MathUtils.smoothstep(ph, 7.3, 8);
+      laptopScreens[1].material.opacity = k;
+    }
+  }
+  // A plane crossing in front of the face (nearer than the head, near screen centre) plays the flyby once per pass.
+  {
+    const headDist = camera.position.distanceTo(pivot.getWorldPosition(tmpA));
+    [plane, ...trafficPlanes.map((p) => p.g)].forEach((pl) => {
+      if (!pl.visible) { pl.userData.inFront = false; return; }
+      pl.getWorldPosition(tmpB);
+      const near = camera.position.distanceTo(tmpB) < headDist - 0.25;
+      tmpB.project(camera);
+      const front = near && Math.abs(tmpB.x) < 0.3 && tmpB.y > -0.6 && tmpB.y < 0.7;
+      if (front && !pl.userData.inFront) playPlane();
+      pl.userData.inFront = front;
+    });
+  }
   const pb = chapterPos();
   const bizW = THREE.MathUtils.smoothstep(pb, BIZ_CHAPTER - 0.55, BIZ_CHAPTER - 0.1)
     - THREE.MathUtils.smoothstep(pb, BIZ_CHAPTER + 0.35, BIZ_CHAPTER + 0.8);
@@ -907,6 +1522,7 @@ renderer.setAnimationLoop(() => {
     at(a, p.g.position);
     p.g.lookAt(at(a + 0.05 * Math.sign(p.speed), tmpA));
     p.g.rotateY(-Math.PI / 2);
+    p.g.rotateX(rollOf(p.g));
     p.g.scale.setScalar(0.8 * bizW);
   });
   CARDS.forEach((c, i) => {

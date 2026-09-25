@@ -87,7 +87,7 @@ const GRADES = {
   'models/grimace_eyes.glb': { skin: [0.9012, 0.7903, 0.7347], hair: [0.3194, 0.2608, 0.24] },
 };
 // Applied on top of every head's grade: a slightly deeper skin tone than the generator produced (linear gains).
-const SKIN_TONE = [0.8, 0.77, 0.76];
+const SKIN_TONE = [0.7, 0.66, 0.64];
 function gradeFor(url) {
   const g = GRADES[url] ?? { skin: [1, 1, 1], hair: [1, 1, 1] };
   return { skin: g.skin.map((v, i) => v * SKIN_TONE[i]), hair: g.hair };
@@ -111,9 +111,9 @@ async function loadHead(url, neckY) {
 // whatever surface a ray from that direction hits first. A per-head key (e.g. `grimace`) overrides the placement
 // where the two sculpts differ.
 export const STICKERS = [
-  { file: '00-india.png', yaw: -22, y: 0.32, size: 0.13, tilt: -8, grimace: { y: 0.4 } },
+  { file: '00-india.png', yaw: -18, y: 0.34, size: 0.17, tilt: -6, grimace: { y: 0.42 } },
   { file: '02-nmims.png', yaw: -56, y: -0.04, size: 0.19, tilt: -6 },
-  { file: '01-mumbai.png', yaw: -70, y: -0.34, size: 0.21, tilt: 8 },
+  { file: '01-mumbai.png', yaw: -92, y: -0.44, size: 0.21, tilt: 8 },
   { file: '05-usa.png', yaw: 26, y: 0.28, size: 0.12, tilt: 8, grimace: { y: 0.37 } },
   { file: '05b-syracuse.png', yaw: 56, y: -0.02, size: 0.20, tilt: 6 },
   { file: '06-chemistry.png', yaw: 70, y: -0.34, size: 0.14, tilt: -8 },
@@ -186,9 +186,14 @@ function addStickers(root, headKey) {
       new THREE.MeshStandardMaterial({ map: stickerTex[st.file], bumpMap: stickerTex[st.file], bumpScale: 1.2,
         transparent: true, alphaTest: 0.02, roughness: 1, metalness: 0, envMapIntensity: 0.35,
         depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
+    decal.userData.sticker = st.file;
+    STICKER_MESHES.push(decal);
     hit.object.attach(decal);
   });
 }
+
+// Every placed sticker, so the page can pull the current chapter's patch onto the sharp layer.
+export const STICKER_MESHES = [];
 
 export const HEADS = { smug: 'models/smug_eyes.glb', grimace: 'models/grimace_eyes.glb' };
 
