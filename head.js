@@ -128,6 +128,10 @@ export const STICKERS = [
   { file: '09-cat.png', yaw: 222, y: -0.32, size: 0.15, tilt: 12 },
   { file: '12-sf.png', yaw: 186, y: -0.3, size: 0.17, tilt: -4 },
   { file: '08-fcb.png', yaw: 140, y: -0.34, size: 0.13, tilt: -8 },
+  // Clickable links.
+  { file: '10-github-sm.png', yaw: 174, y: -0.42, size: 0.075, tilt: -8, href: 'https://github.com/roshankhandelwal97' },
+  { file: '11-linkedin-sm.png', yaw: 199, y: -0.45, size: 0.075, tilt: 6, href: 'https://www.linkedin.com/in/rokhande/' },
+  { file: '13-callcat.png', yaw: 187, y: -0.54, size: 0.13, tilt: 4, action: 'callcat' },
 ];
 const texLoader = new THREE.TextureLoader();
 const stickerTex = Object.fromEntries(await Promise.all(STICKERS.map(async (st) => {
@@ -213,7 +217,7 @@ function addStickers(root) {
       new THREE.MeshStandardMaterial({ map: stickerTex[st.file], bumpMap: stickerTex[st.file], bumpScale: 1.2,
         transparent: true, alphaTest: 0.02, roughness: 1, metalness: 0, envMapIntensity: 0.35,
         depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
-    decal.userData.sticker = st.file;
+    decal.userData.sticker = st.file; decal.userData.href = st.href; decal.userData.action = st.action;
     STICKER_MESHES.push(decal);
     hit.object.attach(decal);
   });

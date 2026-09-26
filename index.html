@@ -6,7 +6,7 @@
 <title>Roshan Khandelwal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Tiro+Devanagari+Hindi:ital@0;1&family=Noto+Sans+Devanagari:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Tiro+Devanagari+Hindi:ital@0;1&family=Noto+Sans+Devanagari:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --paper: #b4ba9b;
@@ -38,11 +38,8 @@
   /* Devanagari joins letters into conjuncts, so it drops the header's letter-spacing and caps. */
   header .top-name[lang="hi"] { font-family: "Noto Sans Devanagari", sans-serif; font-size: 13px; font-weight: 500; letter-spacing: .02em; text-transform: none; }
   .head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-  /* Revealed once the visitor reaches the end of the story, then kept. */
-  .socials { display: flex; gap: 10px; opacity: 0; transform: translateY(-8px); pointer-events: none;
-    transition: opacity .5s ease, transform .5s ease; }
-  .socials.on { opacity: 1; transform: none; pointer-events: auto; }
-  .socials .patch img { width: 44px; height: 44px; }
+  .socials { display: flex; gap: 10px; }
+  .socials .patch img { width: 44px; height: 44px; opacity: 0; }
 
   main { position: relative; z-index: 2; }
   .chapter { height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 40px 9vh; }
@@ -120,12 +117,10 @@
   .chapter.on .lede, .chapter.on h1, .chapter.on h2, .chapter.on .label, .chapter.on .cities, .chapter.on .subhead, .chapter.on .coffee-cta { opacity: 1; transform: none; }
   .chapter.on .lede { transition-delay: .12s; }
   a { color: var(--ink); }
-  /* Pinned bottom-right, shown only on the last chapter. */
-  .score { position: fixed; right: 20px; bottom: 30px; z-index: 6; opacity: 0; transform: translateY(8px);
-    transition: opacity .5s, transform .5s; pointer-events: none;
+  /* Shown only on the last chapter, as a card on the wall (see WALL_FIXTURES); this element only sets its spot. */
+  .score { position: fixed; right: 20px; top: 38%; z-index: 6; opacity: 0 !important; pointer-events: none;
     display: inline-flex; flex-direction: column; gap: 4px; padding: 10px 14px;
     background: #1d2433; color: #f4f1ea; border-radius: 10px; width: max-content; }
-  .score.on { opacity: 1; transform: none; }
   .score-label { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #edbb3a; }
   .score-line { font-size: 15px; letter-spacing: .04em; }
   .score-line em { font-style: normal; color: #edbb3a; padding: 0 6px; font-weight: 600; }
@@ -134,12 +129,17 @@
   .patch:hover img { transform: rotate(-8deg) scale(1.08); }
   .links { display: flex; gap: 24px; margin-top: 28px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
 
-  .scroll-hint { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); font-size: 10px;
+  .scroll-hint { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); font-size: 13px;
     letter-spacing: .3em; color: var(--ink-soft); z-index: 3; transition: opacity .4s; }
   #cat-say { position: fixed; bottom: 150px; z-index: 7; font-size: 12px; letter-spacing: .1em; color: #1d2433;
     background: #f7f4ea; border-radius: 12px; padding: 4px 9px; opacity: 0; transform: translate(-50%, 6px) scale(.9);
     transition: opacity .2s, transform .2s; pointer-events: none; }
   #cat-say.on { opacity: 1; transform: translate(-50%, 0); }
+  /* Aloo's polaroid while it's being shown; it then flies onto the wall, where a 3D copy takes over. */
+  /* Coffee spilled from the cold brew, running down the glass; under the text so the copy stays readable. */
+  #spill { position: fixed; inset: 0; z-index: 1; pointer-events: none; transition: opacity .6s; }
+  #spill.wiped { opacity: 0; }
+  #aloo { position: fixed; z-index: 7; pointer-events: none; opacity: 0; filter: drop-shadow(0 14px 22px rgba(0,0,0,.25)); }
   /* Background colour picker: a stitched patch on the right edge that fans out a column of swatches. */
   .mood { position: fixed; right: 16px; top: 50%; transform: translateY(-50%); z-index: 8;
     display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -334,6 +334,8 @@
 <div class="flash" id="flash"></div>
 <div class="scroll-hint" id="hint">SCROLL</div>
 <span id="cat-say">meow!</span>
+<img id="aloo" alt="Aloo, Roshan's cat">
+<canvas id="spill" class="wiped" aria-hidden="true"></canvas>
 <div class="mood" id="mood">
   <div class="mood-list" id="mood-list" role="listbox" aria-label="Background colour"></div>
   <button class="mood-toggle" id="mood-toggle" aria-expanded="false" aria-controls="mood-list" aria-label="Change background colour">
@@ -361,8 +363,10 @@ import * as THREE from 'three';
 // Every GLTF and texture load goes through the default manager, which drives the loading screen's stitch.
 THREE.DefaultLoadingManager.onProgress = (url, loaded, total) => {
   const pct = Math.round((loaded / total) * 100);
-  document.getElementById('stitch-fill').style.width = pct + '%';
-  document.getElementById('load-count').textContent = pct + '%';
+  // Later loads (the other faces, the cat) arrive after the loading screen has been removed.
+  const fill = document.getElementById('stitch-fill'), count = document.getElementById('load-count');
+  if (fill) fill.style.width = pct + '%';
+  if (count) count.textContent = pct + '%';
 };
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -371,7 +375,7 @@ import { Pass } from 'three/addons/postprocessing/Pass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { loadHeads, look, STICKER_MESHES } from './head.js?v=anchor8';
+import { loadHeads, look, STICKER_MESHES } from './head.js?v=callcat3';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
@@ -404,6 +408,249 @@ const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMat
 wall.position.z = -1.4;
 wall.receiveShadow = true;
 scene.add(wall);
+
+// Aloo, the real cat: a polaroid that pops up when the 3D cat is called, then flies back and stays pinned to the
+// wall. It must sit in front of the shadow plane: the sharp pass draws the base layer into depth first, and that
+// includes the wall. One canvas draws both the on-screen polaroid and the pinned copy, so the hand-off is seamless.
+const ALOO = { w: 0.46, z: -1.39, tilt: 0.1 };
+const alooCanvas = Object.assign(document.createElement('canvas'), { width: 512, height: 640 });
+const alooTex = new THREE.CanvasTexture(alooCanvas);
+alooTex.colorSpace = THREE.SRGBColorSpace; alooTex.anisotropy = 8;
+const alooPhoto = new THREE.Mesh(new THREE.PlaneGeometry(ALOO.w, ALOO.w * 640 / 512),
+  new THREE.MeshBasicMaterial({ map: alooTex, transparent: true, toneMapped: false, color: 0xf2f2f2 }));
+alooPhoto.visible = false; alooPhoto.rotation.z = ALOO.tilt;
+scene.add(alooPhoto); toSharp(alooPhoto);
+const alooEl = document.getElementById('aloo');
+const alooReady = (async () => {
+  const img = new Image(); img.src = 'ui/aloo.jpg'; await img.decode();
+  const SERIF = 'italic 44px "Instrument Serif"', NAME = '700 60px Caveat';
+  await Promise.all([document.fonts.load(SERIF), document.fonts.load(NAME)]);
+  const g = alooCanvas.getContext('2d');
+  g.fillStyle = '#fbfaf5'; g.fillRect(0, 26, 512, 614);
+  // Faint paw-print trails in the frame's margins.
+  const paw = (x, y, r, a) => {
+    g.save(); g.translate(x, y); g.rotate(a); g.fillStyle = 'rgba(214, 120, 52, 0.16)';
+    g.beginPath(); g.ellipse(0, 3, r, r * 0.82, 0, 0, Math.PI * 2); g.fill();
+    for (const [tx, ty] of [[-1.05, -1], [-0.36, -1.5], [0.36, -1.5], [1.05, -1]]) {
+      g.beginPath(); g.ellipse(tx * r, ty * r, r * 0.34, r * 0.42, 0, 0, Math.PI * 2); g.fill();
+    }
+    g.restore();
+  };
+  [[404, 626, 7, 0.5], [432, 606, 7, 0.4], [462, 624, 7, 0.5], [490, 603, 7, 0.4]].forEach((p) => paw(...p));
+  [[22, 612, 6, -0.3], [44, 630, 6, -0.4]].forEach((p) => paw(...p));
+  paw(496, 70, 6, 0.9);
+  g.drawImage(img, 28, 54, 456, 456);
+  // "Meet Aloo, the real one", with the name set apart in an orange hand-lettered face.
+  const parts = [['Meet ', SERIF, '#1d2433'], ['Aloo', NAME, '#d9672a'], [', the real one', SERIF, '#1d2433']];
+  const widths = parts.map(([t, f]) => { g.font = f; return g.measureText(t).width; });
+  let x = 256 - widths.reduce((a, b) => a + b) / 2;
+  g.textBaseline = 'alphabetic';
+  parts.forEach(([t, f, c], i) => { g.font = f; g.fillStyle = c; g.fillText(t, x, 584); x += widths[i]; });
+  g.save(); g.translate(256, 30); g.rotate(-0.06);
+  g.fillStyle = 'rgba(236, 224, 188, 0.85)'; g.fillRect(-80, -24, 160, 50);
+  g.restore();
+  alooTex.needsUpdate = true;
+  alooEl.src = alooCanvas.toDataURL('image/png');
+})();
+const alooRay = new THREE.Raycaster(), alooPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -ALOO.z);
+let alooTimer, alooShown = false;
+// Wall fixtures: the score card and the GitHub / LinkedIn patches are drawn in the scene on the back wall, so the
+// bust passes in front of them. Their DOM elements stay in place but invisible: they set each fixture's spot and
+// size on screen every frame, and still take the clicks and keyboard focus.
+const WALL_Z = -1.39, wallPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -WALL_Z);
+const wallRay = new THREE.Raycaster(), wallNdc = new THREE.Vector2();
+// A soft contact shadow for a fixture, drawn blurred into a small canvas (round for the patches, a card otherwise).
+function wallShadowTex(round) {
+  const c = Object.assign(document.createElement('canvas'), { width: 128, height: 128 }), g = c.getContext('2d');
+  g.filter = 'blur(8px)'; g.fillStyle = 'rgba(20, 18, 14, 0.8)';
+  g.beginPath();
+  if (round) g.arc(64, 64, 40, 0, Math.PI * 2); else g.roundRect(22, 26, 84, 76, 10);
+  g.fill();
+  return new THREE.CanvasTexture(c);
+}
+function wallFixture(el, map, { round = false, tilt = 0 } = {}) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ map, transparent: true, opacity: 0, toneMapped: false, depthWrite: false }));
+  m.visible = false; m.rotation.z = tilt; scene.add(m); toSharp(m);
+  // The shadow stays on the base layer, so it softens with the wall as the scene blurs.
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ map: wallShadowTex(round), transparent: true, opacity: 0, depthWrite: false }));
+  sh.visible = false; sh.rotation.z = tilt; scene.add(sh);
+  return { el, m, sh };
+}
+const wallTex = (src) => { const t = new THREE.TextureLoader().load(src); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+const scoreProxy = document.getElementById('score');
+const scoreCanvas = document.createElement('canvas'), scoreTex = new THREE.CanvasTexture(scoreCanvas);
+scoreTex.colorSpace = THREE.SRGBColorSpace;
+let scoreDrawn = false, scoreSeen = false;
+const WALL_FIXTURES = [
+  ...[...document.querySelectorAll('#socials img')].map((img, i) =>
+    wallFixture(img, wallTex(img.getAttribute('src')), { round: true, tilt: i ? -0.09 : 0.07 })),
+  wallFixture(scoreProxy, scoreTex, { tilt: 0.035 }),
+];
+// Paints the (invisible) score card into its texture, copying each line's position and type from the DOM.
+async function drawScoreCard() {
+  await document.fonts.ready;
+  const card = scoreProxy.getBoundingClientRect(), k = 3, cs = getComputedStyle(scoreProxy);
+  scoreCanvas.width = card.width * k; scoreCanvas.height = card.height * k;
+  const g = scoreCanvas.getContext('2d'); g.scale(k, k);
+  g.fillStyle = cs.backgroundColor; g.beginPath(); g.roundRect(0, 0, card.width, card.height, parseFloat(cs.borderRadius)); g.fill();
+  g.textBaseline = 'middle';
+  for (const el of scoreProxy.querySelectorAll('.score-label, b, em, .score-meta')) {
+    const r = el.getBoundingClientRect(), st = getComputedStyle(el);
+    g.font = `${st.fontStyle} ${st.fontWeight} ${st.fontSize} ${st.fontFamily}`;
+    g.fillStyle = st.color; g.letterSpacing = st.letterSpacing === 'normal' ? '0px' : st.letterSpacing;
+    const text = st.textTransform === 'uppercase' ? el.textContent.toUpperCase() : el.textContent;
+    g.fillText(text, r.left - card.left + parseFloat(st.paddingLeft), r.top - card.top + r.height / 2);
+  }
+  scoreTex.needsUpdate = true; scoreDrawn = true;
+}
+function placeWallFixtures(dt) {
+  const perPx = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (camera.position.z - WALL_Z) / innerHeight;
+  for (const f of WALL_FIXTURES) {
+    // The score card follows its screen spot while its chapter is up; once seen, it stays on the wall where it was
+    // left, for the rest of the visit.
+    const live = f.el !== scoreProxy || (scoreDrawn && !scoreProxy.hidden && scoreProxy.classList.contains('on'));
+    if (f.el === scoreProxy && live) scoreSeen = true;
+    const want = f.el !== scoreProxy || scoreSeen ? 1 : 0;
+    f.m.material.opacity += (want - f.m.material.opacity) * Math.min(1, dt * 5);
+    f.m.visible = f.sh.visible = f.m.material.opacity > 0.01;
+    f.sh.material.opacity = f.m.material.opacity;
+    if (!f.m.visible || !live) continue;
+    const r = f.el.getBoundingClientRect();
+    wallNdc.set((r.left + r.width / 2) / innerWidth * 2 - 1, 1 - (r.top + r.height / 2) / innerHeight * 2);
+    wallRay.setFromCamera(wallNdc, camera);
+    wallRay.ray.intersectPlane(wallPlane, f.m.position);
+    f.m.scale.set(r.width * perPx, r.height * perPx, 1);
+    // Light comes from the upper left, so the shadow falls a little down and to the right.
+    f.sh.position.copy(f.m.position).add(tmpO.set(7 * perPx, -12 * perPx, -0.004));
+    f.sh.scale.set(f.m.scale.x * 1.6, f.m.scale.y * 1.6, 1);
+  }
+}
+
+// Once per visit, from calling the cat or clicking it; after that the photo just stays on the wall.
+// Coffee spill: when the cold brew clinks on the last chapter it splashes, and a few drops run down the lower left of
+// the screen the way rain runs down a window (stop, start, thinning trails). Leaving the chapter wipes it clean.
+const spillCanvas = document.getElementById('spill'), spillCtx = spillCanvas.getContext('2d');
+const trail = document.createElement('canvas'), trailCtx = trail.getContext('2d');
+const COFFEE = (a) => `rgba(92, 52, 22, ${a})`;
+let drops = [], spilled = false;
+function sizeSpill() {
+  const dpr = Math.min(devicePixelRatio, 2);
+  for (const c of [spillCanvas, trail]) { c.width = innerWidth * dpr; c.height = innerHeight * dpr; }
+  spillCtx.setTransform(dpr, 0, 0, dpr, 0, 0); trailCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+sizeSpill();
+addEventListener('resize', () => { sizeSpill(); drops = []; });
+// A bead of coffee on glass: see-through in the middle, darker at the rim, heavier at the bottom, with a highlight
+// and a faint shadow on the pane behind.
+function drawDrop(g, x, y, r, heavy = 1.15) {
+  g.fillStyle = 'rgba(0, 0, 0, 0.1)';
+  g.beginPath(); g.ellipse(x + r * 0.25, y + r * 0.35, r, r * heavy, 0, 0, Math.PI * 2); g.fill();
+  const body = g.createRadialGradient(x - r * 0.2, y - r * 0.35, r * 0.1, x, y + r * 0.1, r * 1.15);
+  body.addColorStop(0, 'rgba(176, 118, 64, 0.35)'); body.addColorStop(0.65, 'rgba(112, 64, 28, 0.6)'); body.addColorStop(1, 'rgba(58, 30, 10, 0.85)');
+  g.fillStyle = body;
+  g.beginPath(); g.ellipse(x, y, r, r * heavy, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(255, 248, 235, 0.7)';
+  g.beginPath(); g.ellipse(x - r * 0.35, y - r * 0.45, r * 0.28, r * 0.18, -0.6, 0, Math.PI * 2); g.fill();
+}
+function spill() {
+  const cup = document.querySelector('.brew').getBoundingClientRect();
+  const x0 = cup.left + cup.width * 0.5, y0 = cup.bottom;
+  trailCtx.clearRect(0, 0, innerWidth, innerHeight);
+  // The splash: a few irregular puddles built from overlapping blobs, then a spray of small beads around them.
+  for (let p = 0; p < 3; p++) {
+    const cx = x0 + (Math.random() - 0.5) * 70, cy = y0 + 4 + Math.random() * 14, size = 5 + Math.random() * 7;
+    for (let i = 0; i < 9; i++) {
+      trailCtx.fillStyle = COFFEE(0.12);
+      trailCtx.beginPath();
+      trailCtx.arc(cx + (Math.random() - 0.5) * size * 2.2, cy + (Math.random() - 0.5) * size, size * (0.4 + Math.random() * 0.6), 0, Math.PI * 2);
+      trailCtx.fill();
+    }
+  }
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * Math.PI * 2, d = 10 + Math.random() * 60;
+    drawDrop(trailCtx, x0 + Math.cos(a) * d * 1.3, y0 + Math.abs(Math.sin(a)) * d * 0.5, 0.8 + Math.random() * 2.2);
+  }
+  drops = [...Array(6)].map(() => ({ x: x0 + (Math.random() - 0.5) * 120, y: y0 + Math.random() * 16, r: 3 + Math.random() * 4,
+    v: 0, dx: 0, run: 0, hold: Math.random() * 1.4 }));
+  spillCanvas.classList.remove('wiped');
+}
+function spillTick(dt) {
+  const onChapter = chapterPos() > BALL_CHAPTER - 0.35;
+  if (!onChapter && spilled) { spilled = false; spillCanvas.classList.add('wiped'); drops = []; }
+  if (onChapter && !spilled) {
+    // Spill on the cup's next clink (the wobble at 84–92% of its 4s cycle).
+    const clink = document.querySelector('.brew')?.getAnimations()[0];
+    if (clink && clink.currentTime % 4000 > 3400 && clink.currentTime % 4000 < 3600) { spilled = true; spill(); }
+  }
+  if (!drops.length) return;
+  for (const d of drops) {
+    if (d.hold > 0) { d.hold -= dt; continue; }
+    // Runs in short bursts, then catches on the glass for a moment; each burst veers a little.
+    if (d.run <= 0) { d.run = 0.15 + Math.random() * 0.5; d.v = 25 + Math.random() * 60; d.dx = (Math.random() - 0.5) * 30; }
+    d.run -= dt;
+    const px = d.x, py = d.y;
+    d.y += d.v * dt; d.x += d.dx * dt;
+    // It loses coffee to its trail, so drops stop at different lengths.
+    d.r -= dt * (0.6 + Math.random() * 0.6);
+    trailCtx.strokeStyle = COFFEE(0.13); trailCtx.lineWidth = Math.max(0.7, d.r * 0.45); trailCtx.lineCap = 'round';
+    trailCtx.beginPath(); trailCtx.moveTo(px, py); trailCtx.lineTo(d.x, d.y); trailCtx.stroke();
+    // The trail breaks up into tiny beads here and there.
+    if (Math.random() < (d.y - py) * 0.06) drawDrop(trailCtx, d.x + (Math.random() - 0.5) * d.r * 0.6, d.y - Math.random() * 4, 0.6 + Math.random() * d.r * 0.3);
+    if (d.run <= 0) {
+      d.hold = 0.3 + Math.random() * 1.1;
+      if (Math.random() < 0.5) drawDrop(trailCtx, d.x, d.y - d.r * 0.8, Math.max(0.9, d.r * 0.4));
+    }
+  }
+  for (const d of drops) if (d.r <= 1.4) drawDrop(trailCtx, d.x, d.y, 1.8, 1.3);
+  drops = drops.filter((d) => d.r > 1.4 && d.y < innerHeight + 10);
+  spillCtx.clearRect(0, 0, innerWidth, innerHeight);
+  spillCtx.drawImage(trail, 0, 0, innerWidth, innerHeight);
+  for (const d of drops) drawDrop(spillCtx, d.x, d.y, d.r, d.hold > 0 ? 1.15 : 1.35);
+}
+
+function showAloo() {
+  if (alooShown) return;
+  alooShown = true;
+  alooReady.then(() => {
+    clearTimeout(alooTimer);
+    alooPhoto.visible = false;
+    const w = Math.min(240, innerWidth * 0.55);
+    Object.assign(alooEl.style, { transition: 'none', width: w + 'px', left: (innerWidth - w) / 2 + 'px',
+      top: innerHeight * 0.08 + 'px', opacity: '0', transform: 'translateY(-40px) rotate(8deg) scale(.7)' });
+    alooEl.getBoundingClientRect();
+    alooEl.style.transition = 'opacity .3s, transform .7s cubic-bezier(.2,1.4,.4,1)';
+    Object.assign(alooEl.style, { opacity: '1', transform: 'rotate(-3deg)' });
+    alooTimer = setTimeout(pinAloo, 4500);
+  });
+}
+function pinAloo() {
+  // The widest open strip of wall beside the head in the upper half of the frame (the chapter text sits bottom-left), as
+  // seen from wherever the camera is now; the photo shrinks to fit it.
+  headOutline();
+  let lo = Infinity, hi = -Infinity;
+  for (let r = Math.floor(OUTLINE_ROWS * 0.55); r < Math.floor(OUTLINE_ROWS * 0.9); r++) {
+    lo = Math.min(lo, outlineMinX[r]); hi = Math.max(hi, outlineMaxX[r]);
+  }
+  if (!isFinite(lo)) { lo = 0; hi = 0; }
+  // Left unless it's much tighter there: the score card hangs on the right.
+  const left = lo + 1 >= 0.6 * (1 - hi), band = left ? [-1, lo] : [hi, 1];
+  alooRay.setFromCamera(new THREE.Vector2((band[0] + band[1]) / 2, 0.42), camera);
+  alooRay.ray.intersectPlane(alooPlane, alooPhoto.position);
+  const halfW = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (camera.position.z - ALOO.z) * camera.aspect;
+  alooPhoto.scale.setScalar(THREE.MathUtils.clamp((band[1] - band[0]) * halfW * 0.55 / ALOO.w, 0.25, 1));
+  alooPhoto.updateMatrixWorld();
+  const toPx = (v) => { v.project(camera); return new THREE.Vector2((v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight); };
+  const c = toPx(alooPhoto.position.clone());
+  const edge = toPx(alooPhoto.position.clone().add(new THREE.Vector3(ALOO.w * alooPhoto.scale.x / 2, 0, 0)));
+  const w = alooEl.offsetWidth, h = alooEl.offsetHeight;
+  const scale = (edge.x - c.x) * 2 / w;
+  const dx = c.x - (parseFloat(alooEl.style.left) + w / 2), dy = c.y - (parseFloat(alooEl.style.top) + h / 2);
+  alooEl.style.transition = 'transform 1.1s cubic-bezier(.55,0,.25,1), opacity .35s ease 1.05s';
+  alooEl.style.transform = `translate(${dx}px, ${dy}px) rotate(${-THREE.MathUtils.radToDeg(ALOO.tilt)}deg) scale(${scale})`;
+  alooTimer = setTimeout(() => { alooPhoto.visible = true; alooEl.style.opacity = '0'; }, 1050);
+}
 
 // Backdrop lives in the scene (not CSS) so depth of field softens it along with everything behind the focus.
 function paperTexture(specks) {
@@ -728,7 +975,7 @@ const matte = new ShaderPass({
 });
 composer.addPass(matte);
 
-let catTick = () => {};
+let catTick = () => {}, callCat = () => {};
 
 // Football for the last chapter, in the style of the 2010 match ball: white, with four rounded-triangle panel
 // bands (tetrahedral layout) — woven red/green/black weave, a gold rim, and a thin black zigzag edge — around white
@@ -805,6 +1052,7 @@ function buildBall() {
   const when = new Date(e.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   document.getElementById('score-meta').textContent = `${e.league?.name ?? e.season?.displayName ?? ''} · ${when}`.replace(/^ · /, '');
   document.getElementById('score').hidden = false;
+  drawScoreCard();
 })();
 const heads = await loadHeads(pivot);
 
@@ -871,12 +1119,57 @@ const amine = buildMolecule(
    ['H', -0.13, 0.02, 0.07], ['C', 0.16, -0.06, -0.02]],
   [[0, 1], [1, 2], [0, 3], [0, 4], [3, 5], [1, 6]]);
 const MOLECULES = [
-  { g: benzene, at: new THREE.Vector3(0.52, 0.0, 0.25), spin: 0.5, size: 0.9 },
-  { g: amine, at: new THREE.Vector3(0.72, -0.5, 0.05), spin: 0.6, size: 0.8 },
+  { g: benzene, at: new THREE.Vector3(0.3, -0.14, 0.25), spin: 0.5, size: 0.9 },
+  { g: amine, at: new THREE.Vector3(0.42, -0.5, 0.05), spin: 0.6, size: 0.8 },
   { g: water, at: new THREE.Vector3(0.3, -0.72, 0.35), spin: 0.8, size: 0.8 },
   { g: water.clone(), at: new THREE.Vector3(0.12, 0.12, 0.5), spin: 1.0, size: 0.55 },
 ];
-MOLECULES.forEach((m) => { m.g.visible = false; scene.add(m.g); toSharp(m.g); });
+MOLECULES.forEach((m) => {
+  m.g.visible = false; scene.add(m.g); toSharp(m.g);
+  m.r = new THREE.Box3().setFromObject(m.g).getBoundingSphere(new THREE.Sphere()).radius;
+});
+// Screen-space outline of the visible head (left- and right-most point per row), from a sparse sample of its
+// vertices, so props can keep clear of it on any window shape.
+const OUTLINE_ROWS = 32, outlineMaxX = new Float32Array(OUTLINE_ROWS), outlineMinX = new Float32Array(OUTLINE_ROWS);
+const headSamples = new WeakMap(), tmpO = new THREE.Vector3();
+function headOutline() {
+  outlineMaxX.fill(-Infinity); outlineMinX.fill(Infinity);
+  const h = Object.values(heads).find((x) => x.root.visible);
+  if (!h) return;
+  let pts = headSamples.get(h.root);
+  if (!pts) {
+    pts = [];
+    h.root.traverse((o) => {
+      if (!o.isMesh) return;
+      const p = o.geometry.attributes.position, step = Math.max(1, Math.ceil(p.count / 800));
+      for (let i = 0; i < p.count; i += step) pts.push([o, new THREE.Vector3().fromBufferAttribute(p, i)]);
+    });
+    headSamples.set(h.root, pts);
+  }
+  for (const [o, v] of pts) {
+    tmpO.copy(v).applyMatrix4(o.matrixWorld).project(camera);
+    const r = Math.floor((tmpO.y * 0.5 + 0.5) * OUTLINE_ROWS);
+    if (r < 0 || r >= OUTLINE_ROWS) continue;
+    if (tmpO.x > outlineMaxX[r]) outlineMaxX[r] = tmpO.x;
+    if (tmpO.x < outlineMinX[r]) outlineMinX[r] = tmpO.x;
+  }
+}
+const camRight = new THREE.Vector3();
+// Nudges a molecule's resting spot right of the head's outline and inside the frame, in screen space.
+function clearOfHead(m, out) {
+  const scale = m.size;
+  tmpO.copy(m.at).project(camera);
+  const z = tmpO.z;
+  camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+  const rx = out.copy(m.at).addScaledVector(camRight, m.r * scale).project(camera).x - tmpO.x, ry = rx * camera.aspect;
+  const lo = Math.max(0, Math.floor(((tmpO.y - ry) * 0.5 + 0.5) * OUTLINE_ROWS));
+  const hi = Math.min(OUTLINE_ROWS - 1, Math.floor(((tmpO.y + ry) * 0.5 + 0.5) * OUTLINE_ROWS));
+  let edge = -Infinity;
+  for (let r = lo; r <= hi; r++) edge = Math.max(edge, outlineMaxX[r]);
+  const x = Math.min(Math.max(tmpO.x, edge + rx + 0.03), 1 - rx - 0.02);
+  const y = THREE.MathUtils.clamp(tmpO.y, -1 + ry + 0.02, 1 - ry - 0.02);
+  return out.set(x, y, z).unproject(camera);
+}
 const RESEARCH_CHAPTER = 6;
 
 // "One-way ticket" chapter: light monsoon rain that, after a few seconds, eases into falling snow. Camera space,
@@ -1065,6 +1358,29 @@ function applyTrick(p) {
     p.rotateZ(a);
   }
 }
+// Clickable patches on the head: GitHub / LinkedIn open their pages, "Call the cat" calls it over. Only the front
+// of a patch counts, so one on the far side of the head can't be clicked through it.
+const linkRay = new THREE.Raycaster(); linkRay.layers.enableAll();
+function patchAt(e) {
+  const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+  const links = STICKER_MESHES.filter((m) => (m.userData.href || m.userData.action) && shown(m));
+  linkRay.setFromCamera(ballNdc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
+  const hit = linkRay.intersectObjects(links, false)[0];
+  if (!hit) return null;
+  const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+  return n.dot(linkRay.ray.direction) < 0 ? hit.object.userData : null;
+}
+addEventListener('click', (e) => {
+  if (e.target.closest('a, button')) return;
+  const patch = patchAt(e);
+  if (patch?.href) window.open(patch.href, '_blank', 'noopener');
+  else if (patch?.action === 'callcat') callCat();
+});
+let linkHover = false;
+addEventListener('pointermove', (e) => {
+  const over = !e.target.closest('a, button') && !!patchAt(e);
+  if (over !== linkHover) { linkHover = over; document.body.style.cursor = over ? 'pointer' : ''; }
+});
 addEventListener('click', (e) => {
   if (e.target.closest('a, button')) return;
   ballNdc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -1264,9 +1580,9 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
   const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   // Walkable band as distance from the camera. The floor is the bottom edge of the page at every depth, so
   // walking "into" the page only shrinks the cat and walking out grows it.
-  const NEAR = 1.8, FAR = 5.0;
+  const NEAR = 1.8, FAR = 5.0, CALL_OFF = 1.35;
   const pos = { x: 0, off: 0 }, target = { x: 0, off: 0 };
-  let heading = -Math.PI / 2, state = 'walk', stateT = 0, waitFor = 0, arrived = false;
+  let heading = -Math.PI / 2, state = 'walk', stateT = 0, waitFor = 0, arrived = false, called = false, sitFor = 4;
   const depthOf = (off) => off;
   const halfWAt = (off) => tanH * camera.aspect * depthOf(off);
   const floorY = (d) => -tanH * d * 0.985;
@@ -1299,6 +1615,7 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
     sayUntil = clock.elapsedTime + 1.6;
     say.classList.add('on');
     playMeow();
+    showAloo();
     if (state === 'walk') { state = 'sitDown'; stateT = 0; go(A.sitDown); }
   });
   // Real recordings (public domain, Wikimedia Commons): one of three meows.
@@ -1328,6 +1645,20 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
   });
 
   const WALK_SPEED = bodyLen * 0.5;
+  // Called over: trots to the front of the frame from wherever it is, then sits facing the viewer.
+  callCat = () => {
+    if (!arrived) return;
+    called = true;
+    // Dead centre of the screen, close enough to the viewer to sit in front of the bust rather than inside it.
+    target.off = CALL_OFF; target.x = 0;
+    if (state === 'away') {
+      state = 'walk'; stateT = 0; cat.visible = true;
+      pos.off = CALL_OFF; pos.x = (Math.random() < 0.5 ? -1 : 1) * (halfWAt(CALL_OFF) + bodyLen);
+      go(A.walk, 0.1);
+    } else if (state === 'sit' || state === 'sitDown') {
+      state = 'standUp'; stateT = 0; go(A.standUp, 0.2);
+    }
+  };
   let avoidSide = 0;
   let nextRest = 7 + Math.random() * 6;
   cat.visible = false;
@@ -1359,14 +1690,19 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
     } else if (state === 'walk') {
       const dx = target.x - pos.x, dz = -(target.off - pos.off);
       const dist = Math.hypot(dx, dz);
+      A.walk.timeScale = called ? 2 : 1;
       if (dist < bodyLen * 0.3) {
-        if (offscreen()) { state = 'away'; stateT = 0; waitFor = 3 + Math.random() * 5; cat.visible = false; }
+        if (called) {
+          called = false; A.walk.timeScale = 1; state = 'sitDown'; stateT = 0; go(A.sitDown); playMeow();
+          sitFor = 8; showAloo();
+        }
+        else if (offscreen()) { state = 'away'; stateT = 0; waitFor = 3 + Math.random() * 5; cat.visible = false; }
         else pickTarget();
       } else {
         // Steer around the bust: blend in a push away from it that grows as the cat gets close.
         let sx = dx / dist, sz = dz / dist;
         const kd = keepOutD(pos.x, pos.off);
-        if (kd < 1.6) {
+        if (kd < 1.6 && !called) {
           const ax = pos.x / KEEP_OUT.rx, az = (pos.off - cur.dist) / KEEP_OUT.rz, al = Math.hypot(ax, az) || 1;
           const w = (1.6 - kd) * 2.2;
           // Tangential slide (keeps it circling round rather than stopping) plus a radial push.
@@ -1380,21 +1716,21 @@ Object.values(heads).forEach((h) => h.root.traverse((o) => { if (o.isMesh && !o.
         let d = want - heading; d = Math.atan2(Math.sin(d), Math.cos(d));
         heading += d * Math.min(1, dt * 2.5);
         // Slow down while turning sharply so it pivots instead of drifting sideways.
-        const speed = WALK_SPEED * Math.max(0.25, Math.cos(d));
+        const speed = WALK_SPEED * (called ? 2.4 : 1) * Math.max(0.25, Math.cos(d));
         pos.x += -Math.sin(heading) * speed * dt;
         pos.off -= -Math.cos(heading) * speed * dt;
-        pos.off = THREE.MathUtils.clamp(pos.off, NEAR - 0.1, FAR + 0.1);
+        pos.off = THREE.MathUtils.clamp(pos.off, called ? CALL_OFF : Math.min(NEAR - 0.1, pos.off), FAR + 0.1);
         const pp = { x: pos.x, depth: pos.off };
         if (pushOutOfBust(pp, 0.05)) { pos.x = pp.x; pos.off = pp.depth; }
       }
       nextRest -= dt;
-      if (nextRest < 0 && !offscreen()) { state = 'sitDown'; stateT = 0; go(A.sitDown); }
+      if (!called && nextRest < 0 && !offscreen()) { state = 'sitDown'; stateT = 0; go(A.sitDown); }
     } else if (state === 'sitDown' && stateT > A.sitDown.getClip().duration) {
       state = 'sit'; stateT = 0; go(A.sit, 0.2);
-    } else if (state === 'sit' && stateT > 4) {
-      state = 'standUp'; stateT = 0; go(A.standUp, 0.2);
+    } else if (state === 'sit' && stateT > sitFor) {
+      sitFor = 4; state = 'standUp'; stateT = 0; go(A.standUp, 0.2);
     } else if (state === 'standUp' && stateT > A.standUp.getClip().duration) {
-      state = 'walk'; stateT = 0; nextRest = 9 + Math.random() * 8; pickTarget(); go(A.walk, 0.3);
+      state = 'walk'; stateT = 0; nextRest = 9 + Math.random() * 8; if (!called) pickTarget(); go(A.walk, 0.3);
     }
     if (state === 'sitDown' || state === 'sit') {
       // Settles facing the viewer (heading π walks toward the camera).
@@ -1423,7 +1759,7 @@ const SHOTS = [
   { yaw: -40, y: -0.18, dist: 1.9 },
   { yaw: -360, y: 0.08, dist: 3.4 },
   { yaw: -304, y: -0.02, dist: 1.9 },
-  { yaw: -290, y: -0.30, dist: 2.0 },
+  { yaw: -290, y: -0.30, dist: 2.35, x: 0.22 },
   { yaw: -612, y: -0.16, dist: 2.1 },
   { yaw: -720, y: 0.02, dist: 3.0 },
   { yaw: -894, y: -0.22, dist: 2.6 },
@@ -1431,7 +1767,7 @@ const SHOTS = [
 // The patch each chapter is about, by chapter index.
 const CHAPTER_STICKERS = [
   [], ['00-india.png', '01-mumbai.png'], ['02-nmims.png', '01-mumbai.png'], ['03-accenture.png'], ['05-usa.png'],
-  ['05b-syracuse.png'], ['06-chemistry.png'], ['06b-darkstore.png'], ['07-biztrip.png'], ['08-fcb.png', '12-sf.png', '09-cat.png'],
+  ['05b-syracuse.png'], ['06-chemistry.png'], ['06b-darkstore.png'], ['07-biztrip.png'], ['08-fcb.png', '12-sf.png', '09-cat.png', '10-github-sm.png', '11-linkedin-sm.png', '13-callcat.png'],
 ];
 // Three faces across the story: smug (intro → Accenture), grimace (the move → research), whistle (Dark Store →
 // end). Each swap happens as the turn passes the back of the head (yaw -180 and -540), so it is never seen.
@@ -1560,7 +1896,6 @@ addEventListener('scroll', () => {
   // Resting on the chapter also translates it, after a short read in Hindi.
   if (active === 1 && !namasteTimer) namasteTimer = setTimeout(() => namaste.set('en'), 2500);
   if (active !== 1 && namasteTimer) { clearTimeout(namasteTimer); namasteTimer = 0; }
-  if (active === sections.length - 1) document.getElementById('socials').classList.add('on');
   document.getElementById('score').classList.toggle('on', active === sections.length - 1);
 });
 sections[0].classList.add('on');
@@ -1581,7 +1916,10 @@ renderer.setAnimationLoop(() => {
 
   showFaces(cur.yaw);
 
-  const yawRad = THREE.MathUtils.degToRad(-cur.yaw);
+  // Landing shot sits the head right of centre (clear of the name); later chapters centre it. Narrow screens stay centred.
+  const cx = narrow ? 0 : cur.x;
+  // The camera only translates, so an off-centre shot sees the head from the side; turn the head to face it square on.
+  const yawRad = THREE.MathUtils.degToRad(-cur.yaw) + Math.atan2(cx, cur.dist);
   pivot.rotation.y += (yawRad + mouse.x * 0.22 - pivot.rotation.y) * k;
   pivot.rotation.x += (-mouse.y * 0.1 - pivot.rotation.x) * k;
   look.value.x += (eyeTarget(mouse.x) * EYE_GAIN.x - look.value.x) * Math.min(1, dt * 8);
@@ -1589,8 +1927,6 @@ renderer.setAnimationLoop(() => {
 
   // Head stays centred; narrow screens lift the framing so the bottom text sits under the chin.
   const lift = narrow ? -cur.dist * 0.12 : -cur.dist * 0.04;
-  // Landing shot sits the head right of centre (clear of the name); later chapters centre it. Narrow screens stay centred.
-  const cx = narrow ? 0 : cur.x;
   camera.position.set(cx, cur.y + lift, cur.dist);
   camera.lookAt(cx, cur.y + lift, 0);
 
@@ -1628,11 +1964,14 @@ renderer.setAnimationLoop(() => {
   const pr = chapterPos();
   const molW = THREE.MathUtils.smoothstep(pr, RESEARCH_CHAPTER - 0.6, RESEARCH_CHAPTER - 0.1)
     - THREE.MathUtils.smoothstep(pr, RESEARCH_CHAPTER + 0.35, RESEARCH_CHAPTER + 0.8);
+  if (molW > 0.01) headOutline();
   MOLECULES.forEach((m, i) => {
     m.g.visible = molW > 0.01;
-    if (!m.g.visible) return;
+    if (!m.g.visible) { m.home = null; return; }
     const tt = clock.elapsedTime;
-    m.g.position.copy(m.at).add(tmpA.set(Math.sin(tt * 0.6 + i) * 0.03, Math.sin(tt * 0.8 + i * 2) * 0.04, 0));
+    const want = clearOfHead(m, tmpB);
+    m.home = m.home ? m.home.lerp(want, Math.min(1, dt * 4)) : want.clone();
+    m.g.position.copy(m.home).add(tmpA.set(Math.sin(tt * 0.6 + i) * 0.03, Math.sin(tt * 0.8 + i * 2) * 0.04, 0));
     m.g.rotation.set(tt * m.spin * 0.5 + i, tt * m.spin + i, 0);
     // Slight overshoot as each one pops in, staggered so they don't appear in lockstep.
     const k = THREE.MathUtils.clamp(molW * 1.4 - i * 0.1, 0, 1);
@@ -1699,7 +2038,7 @@ renderer.setAnimationLoop(() => {
   {
     const pc = chapterPos();
     const w = THREE.MathUtils.smoothstep(pc, DARKSTORE_CHAPTER - 0.55, DARKSTORE_CHAPTER - 0.1)
-      - THREE.MathUtils.smoothstep(pc, DARKSTORE_CHAPTER + 0.35, DARKSTORE_CHAPTER + 0.8);
+      - THREE.MathUtils.smoothstep(pc, DARKSTORE_CHAPTER + 0.15, DARKSTORE_CHAPTER + 0.45);
     const wasVisible = phone.visible;
     phone.visible = w > 0.01;
     // The screen loop restarts whenever the phone comes into view, so it always opens on the home screen.
@@ -1811,7 +2150,8 @@ renderer.setAnimationLoop(() => {
   }
   {
     const pl = chapterPos();
-    const w = THREE.MathUtils.smoothstep(pl, BIZ_CHAPTER - 0.55, BIZ_CHAPTER - 0.1)
+    // Starts only once the Dark Store phone has gone; the laptop screen draws over everything.
+    const w = THREE.MathUtils.smoothstep(pl, BIZ_CHAPTER - 0.5, BIZ_CHAPTER - 0.1)
       - THREE.MathUtils.smoothstep(pl, BIZ_CHAPTER + 0.35, BIZ_CHAPTER + 0.8);
     const was = laptop.visible;
     laptop.visible = w > 0.01;
@@ -1877,6 +2217,8 @@ renderer.setAnimationLoop(() => {
   });
   specks.material.map.offset.set(clock.elapsedTime * 0.004, -clock.elapsedTime * 0.006);
   catTick(dt);
+  placeWallFixtures(dt);
+  spillTick(dt);
   composer.render(dt);
 });
 </script>
