@@ -17,8 +17,40 @@ python3 -m http.server 8000   # then open http://localhost:8000
 - `stickers/` — patch artwork
 - `tools/` — offline scripts used to prepare the eye-tracking data and colour grades
 
+## The face models
+
+The three faces (smug, grimace, whistle) are generated, not scanned.
+
+**Tools.** Images: ChatGPT. Image-to-3D: we tried [Hunyuan3D](https://3d.hunyuan.tencent.com), [Tripo](https://www.tripo3d.ai),
+[Rodin](https://hyper3d.ai) and [3D AI Studio](https://www.3daistudio.com), and used [Meshy](https://www.meshy.ai)
+(model **Meshy 7.1**) for all three faces. Post-processing: [glTF Transform](https://gltf-transform.dev) and the
+scripts in `tools/`.
+
+To make a new one:
+
+1. **Stylised reference.** Turn a front photo into a Pixar-style head-and-shoulders bust with ChatGPT (image generation):
+   same glasses, beard and black t-shirt, plain grey background, front view, no text.
+2. **Expression.** Give ChatGPT that bust back with: *"Keep this exact character identical — same face, identity, hair,
+   beard, rimless glasses, black t-shirt, style, framing, lighting and plain grey background. Change only the
+   expression to …"*. Exaggerate it so it survives the jump to 3D.
+3. **3D.** [Meshy](https://www.meshy.ai) → Image to 3D, **Meshy 7.1**, single image. Mesh: Ultra 2K, Triangle topology.
+   Generate Textures on, PBR on, texture quality Ultra. Download the GLB.
+4. **Web-optimise.**
+   ```sh
+   npx @gltf-transform/cli@4 optimize in.glb models/<face>.glb --compress meshopt --texture-compress webp \
+     --texture-size 2048 --simplify true --simplify-ratio 0.12 --simplify-error 0.0005
+   ```
+5. **Eye tracking.** `tools/eyes` (`probe` → `raster` → `extract` → `build`) bakes the eye outlines and an iris atlas
+   into `models/<face>_eyes.glb`. The scripts are tuned per face (eye boxes are hard-coded), so expect to adjust them.
+6. **Colour match.** `tools/grade` measures skin and hair against the smug face; add the gains to `GRADES` in `head.js`.
+7. **Wire it in.** Add the file to `HEADS` in `head.js` and to `FACE_AT` in `index.html` (the yaw at which it swaps in,
+   always while the back of the head faces the camera). Stickers need no work: they're placed on the first face and
+   reused on the others.
+
 ## Credits
 
+- Faces: generated with ChatGPT and Meshy 7.1 from photos of me (see [The face models](#the-face-models))
+- Aloo's photo: my own cat
 - Cat: "Somali Cat Animated ver 1.2" by [DreamNoms](https://sketchfab.com/3d-models/somali-cat-animated-ver-12-e185c3fd92b64c32b4515a32b29252fc), CC BY 4.0 (recoloured)
 - MacBook: "2021 Macbook Pro 14\" (M1 Pro / M1 Max)" by [akshatmittal](https://sketchfab.com/3d-models/2021-macbook-pro-14-m1-pro-m1-max-f6b0b940fb6a4286b18a674ef32af2d3), CC BY 4.0 (logo removed, recoloured)
 - Plane flyby: [InspectorJ](https://commons.wikimedia.org/wiki/File:428086_inspectorj_airplane-boeing-flyby-right-to-left-a.wav), CC BY 4.0 (trimmed)
