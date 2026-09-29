@@ -21,9 +21,8 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 The three faces (smug, grimace, whistle) are generated, not scanned.
 
-**Tools.** Images: ChatGPT. Image-to-3D: we tried [Hunyuan3D](https://3d.hunyuan.tencent.com), [Tripo](https://www.tripo3d.ai),
-[Rodin](https://hyper3d.ai) and [3D AI Studio](https://www.3daistudio.com), and used [Meshy](https://www.meshy.ai)
-(model **Meshy 7.1**) for all three faces. Post-processing: [glTF Transform](https://gltf-transform.dev) and the
+**Tools.** Images: ChatGPT. Image-to-3D: [3D AI Studio](https://www.3daistudio.com), which runs several generators in
+one place. We tried Hunyuan3D, Tripo and Rodin, and used **Meshy 7.1** for all three faces. Post-processing: [glTF Transform](https://gltf-transform.dev) and the
 scripts in `tools/`.
 
 To make a new one:
@@ -33,7 +32,7 @@ To make a new one:
 2. **Expression.** Give ChatGPT that bust back with: *"Keep this exact character identical — same face, identity, hair,
    beard, rimless glasses, black t-shirt, style, framing, lighting and plain grey background. Change only the
    expression to …"*. Exaggerate it so it survives the jump to 3D.
-3. **3D.** [Meshy](https://www.meshy.ai) → Image to 3D, **Meshy 7.1**, single image. Mesh: Ultra 2K, Triangle topology.
+3. **3D.** [3D AI Studio](https://www.3daistudio.com) → Image to 3D → All models → **Meshy 7.1**, single image. Mesh: Ultra 2K, Triangle topology.
    Generate Textures on, PBR on, texture quality Ultra. Download the GLB.
 4. **Web-optimise.**
    ```sh
@@ -49,7 +48,7 @@ To make a new one:
 
 ## Credits
 
-- Faces: generated with ChatGPT and Meshy 7.1 from photos of me (see [The face models](#the-face-models))
+- Faces: generated with ChatGPT and Meshy 7.1 (via 3D AI Studio) from photos of me (see [The face models](#the-face-models))
 - Aloo's photo: my own cat
 - Cat: "Somali Cat Animated ver 1.2" by [DreamNoms](https://sketchfab.com/3d-models/somali-cat-animated-ver-12-e185c3fd92b64c32b4515a32b29252fc), CC BY 4.0 (recoloured)
 - MacBook: "2021 Macbook Pro 14\" (M1 Pro / M1 Max)" by [akshatmittal](https://sketchfab.com/3d-models/2021-macbook-pro-14-m1-pro-m1-max-f6b0b940fb6a4286b18a674ef32af2d3), CC BY 4.0 (logo removed, recoloured)
