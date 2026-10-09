@@ -1798,7 +1798,7 @@ const sections = [...document.querySelectorAll('.chapter')];
 // small menu instead: Gmail, the default mail app, or copy the address.
 {
   const btn = document.getElementById('coffee-cta'), menu = document.getElementById('coffee-menu');
-  const addr = () => `${['khandelwal', 'roshan97'].join('.')}@${['gmail', 'com'].join('.')}`;
+  const addr = () => `${['roshankhandelwal', 'dev'].join('.')}@${['gmail', 'com'].join('.')}`;
   const subject = encodeURIComponent('Coffee?');
   btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); menu.classList.toggle('open'); });
   addEventListener('click', (e) => { if (!menu.contains(e.target)) menu.classList.remove('open'); });
